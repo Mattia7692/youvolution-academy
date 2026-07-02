@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { salvaModulo1, type DatiFiscali } from "@/app/(autenticato)/iscrizione/actions";
+import { salvaPasso1, type DatiFiscali } from "@/app/(autenticato)/iscrizione/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +22,7 @@ const VUOTO: DatiFiscali = {
   pec: "",
 };
 
-export function Modulo1Form({ corsoId }: { corsoId: string }) {
+export function Passo1Form({ corsoId }: { corsoId: string }) {
   const [dati, setDati] = useState<DatiFiscali>(VUOTO);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,7 +39,7 @@ export function Modulo1Form({ corsoId }: { corsoId: string }) {
     setError(null);
     setIsLoading(true);
 
-    const risultato = await salvaModulo1(corsoId, dati);
+    const risultato = await salvaPasso1(corsoId, dati);
     setIsLoading(false);
 
     if (!risultato.ok) {
@@ -47,7 +47,7 @@ export function Modulo1Form({ corsoId }: { corsoId: string }) {
       return;
     }
 
-    router.push(`/iscrizione/${corsoId}/modulo-2`);
+    router.push(`/iscrizione/${corsoId}/passo-2`);
   };
 
   const isAzienda = dati.tipo_soggetto === "azienda";
@@ -137,7 +137,7 @@ export function Modulo1Form({ corsoId }: { corsoId: string }) {
       )}
 
       <Button type="submit" className="w-full mt-1" disabled={isLoading}>
-        {isLoading ? "Salvataggio…" : "Continua al Modulo 2"}
+        {isLoading ? "Salvataggio…" : "Continua al passo 2"}
       </Button>
     </form>
   );

@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { salvaModulo2 } from "@/app/(autenticato)/iscrizione/actions";
+import { salvaPasso2 } from "@/app/(autenticato)/iscrizione/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function Modulo2Form({ iscrizioneId }: { iscrizioneId: string }) {
+export function Passo2Form({ iscrizioneId }: { iscrizioneId: string }) {
   const [cro, setCro] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -18,7 +18,7 @@ export function Modulo2Form({ iscrizioneId }: { iscrizioneId: string }) {
     setError(null);
     setIsLoading(true);
 
-    const risultato = await salvaModulo2(iscrizioneId, cro);
+    const risultato = await salvaPasso2(iscrizioneId, cro);
     setIsLoading(false);
 
     if (!risultato.ok) {

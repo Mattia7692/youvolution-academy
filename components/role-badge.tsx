@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import type { CSSProperties } from "react";
 import type { Ruolo } from "@/lib/roles";
 
 const ETICHETTE: Record<Ruolo, string> = {
@@ -6,14 +6,14 @@ const ETICHETTE: Record<Ruolo, string> = {
   admin: "Admin",
 };
 
-const COLORI_SM: Record<Ruolo, string> = {
-  corsista: "bg-white/10 text-sidebar-fg",
-  admin: "bg-brand/25 text-brand",
+const STILI_SM: Record<Ruolo, CSSProperties> = {
+  corsista: { backgroundColor: "rgba(255,255,255,0.1)", color: "hsl(175 20% 88%)" },
+  admin: { backgroundColor: "hsl(173 60% 35% / 0.25)", color: "hsl(173 70% 75%)" },
 };
 
-const COLORI_MD: Record<Ruolo, string> = {
-  corsista: "bg-muted text-muted-foreground",
-  admin: "bg-brand/15 text-brand",
+const STILI_MD: Record<Ruolo, CSSProperties> = {
+  corsista: { backgroundColor: "hsl(30 10% 92%)", color: "hsl(20 8% 48%)" },
+  admin: { backgroundColor: "hsl(173 60% 35% / 0.15)", color: "hsl(173 60% 28%)" },
 };
 
 export function RoleBadge({
@@ -23,13 +23,11 @@ export function RoleBadge({
   ruolo: Ruolo;
   size?: "sm" | "md";
 }) {
-  const colori = size === "sm" ? COLORI_SM : COLORI_MD;
+  const stile = size === "sm" ? STILI_SM[ruolo] : STILI_MD[ruolo];
   return (
     <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-        colori[ruolo],
-      )}
+      style={stile}
+      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium w-fit"
     >
       {ETICHETTE[ruolo]}
     </span>

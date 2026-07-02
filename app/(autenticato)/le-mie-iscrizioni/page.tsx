@@ -54,7 +54,7 @@ export default async function LeMieIscrizioniPage() {
                   <StatoBadge stato={iscrizione.stato as StatoIscrizione} />
                   {iscrizione.stato === "in_attesa_pagamento" && (
                     <Button asChild size="sm">
-                      <Link href={`/iscrizione/${iscrizione.corso_id}/modulo-2`}>
+                      <Link href={`/iscrizione/${iscrizione.corso_id}/passo-2`}>
                         Continua
                       </Link>
                     </Button>

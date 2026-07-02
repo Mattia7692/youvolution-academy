@@ -2,13 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 
-export function SidebarNav({
-  voci,
-}: {
-  voci: { href: string; etichetta: string }[];
-}) {
+const TESTO_SIDEBAR = "hsl(175 20% 88%)";
+const TESTO_SIDEBAR_ATTENUATO = "rgba(255,255,255,0.65)";
+const PUNTO_MUTO = "hsl(190 12% 55%)";
+// Accento arancione riservato alla voce attiva, per contrasto rispetto al
+// blu/teal usato come colore brand generale (stesso schema dell'enterprise,
+// dove il brand arancione ha un accento contrastante sulla voce selezionata).
+const ACCENTO_ATTIVO = "hsl(28 90% 55%)";
+
+export type VoceNav = { href: string; etichetta: string; badge?: number };
+
+export function SidebarNav({ voci }: { voci: VoceNav[] }) {
   const pathname = usePathname();
 
   return (
@@ -19,20 +24,27 @@ export function SidebarNav({
           <Link
             key={voce.href}
             href={voce.href}
-            className={cn(
-              "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
-              attivo
-                ? "bg-brand/15 text-sidebar-fg font-medium border border-brand/30"
-                : "text-sidebar-fg/70 hover:bg-white/5 hover:text-sidebar-fg",
-            )}
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-white/5"
+            style={{
+              backgroundColor: attivo ? "hsl(28 90% 55% / 0.15)" : "transparent",
+              border: attivo ? "1px solid hsl(28 90% 55% / 0.35)" : "1px solid transparent",
+              color: attivo ? TESTO_SIDEBAR : TESTO_SIDEBAR_ATTENUATO,
+              fontWeight: attivo ? 500 : 400,
+            }}
           >
             <span
-              className={cn(
-                "size-1.5 rounded-full shrink-0",
-                attivo ? "bg-brand" : "bg-sidebar-muted",
-              )}
+              className="size-2.5 rounded-full shrink-0"
+              style={{ backgroundColor: attivo ? ACCENTO_ATTIVO : PUNTO_MUTO }}
             />
-            {voce.etichetta}
+            <span className="flex-1">{voce.etichetta}</span>
+            {!!voce.badge && (
+              <span
+                className="text-xs font-semibold rounded-full px-1.5 py-0.5 min-w-5 text-center"
+                style={{ backgroundColor: "hsl(28 90% 55%)", color: "white" }}
+              >
+                {voce.badge}
+              </span>
+            )}
           </Link>
         );
       })}

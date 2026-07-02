@@ -17,9 +17,9 @@ export type DatiFiscali = {
   pec: string;
 };
 
-// Modulo 1: crea (o riprende) l'iscrizione per il corso, salva i dati fiscali
+// Passo 1: crea (o riprende) l'iscrizione per il corso, salva i dati fiscali
 // e congela il prezzo corrente del corso. Porta lo stato a in_attesa_pagamento.
-export async function salvaModulo1(corsoId: string, dati: DatiFiscali) {
+export async function salvaPasso1(corsoId: string, dati: DatiFiscali) {
   const supabase = await createClient();
 
   const {
@@ -70,13 +70,20 @@ export async function salvaModulo1(corsoId: string, dati: DatiFiscali) {
     return { ok: false as const, error: error?.message ?? "Errore nel salvataggio." };
   }
 
+  // Il corsista vede subito la propria iscrizione, e l'admin deve vedere la
+  // nuova prenotazione (pagina + contatore in sidebar) senza dover forzare un
+  // refresh: la router cache di Next.js altrimenti continuerebbe a servire la
+  // versione vuota vista prima di questa iscrizione.
   revalidatePath("/le-mie-iscrizioni");
+  revalidatePath("/admin/prenotazioni");
+  revalidatePath("/admin/coda-verifica");
+  revalidatePath("/", "layout");
   return { ok: true as const, iscrizioneId: iscrizione.id as string };
 }
 
-// Modulo 2: registra il CRO del bonifico. Il pagamento resta esterno alla
+// Passo 2: registra il CRO del bonifico. Il pagamento resta esterno alla
 // piattaforma — qui si registra solo il riferimento.
-export async function salvaModulo2(iscrizioneId: string, cro: string) {
+export async function salvaPasso2(iscrizioneId: string, cro: string) {
   const supabase = await createClient();
 
   const {
@@ -103,6 +110,11 @@ export async function salvaModulo2(iscrizioneId: string, cro: string) {
     return { ok: false as const, error: error.message };
   }
 
+  // Passa da "prenotazione" a "coda di verifica": entrambe le viste admin
+  // (oltre al contatore in sidebar) vanno invalidate.
   revalidatePath("/le-mie-iscrizioni");
+  revalidatePath("/admin/prenotazioni");
+  revalidatePath("/admin/coda-verifica");
+  revalidatePath("/", "layout");
   return { ok: true as const };
 }

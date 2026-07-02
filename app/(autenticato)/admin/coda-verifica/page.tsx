@@ -14,13 +14,21 @@ export default async function CodaVerificaPage() {
   const admin = await richiediAdmin(supabase);
   if (!admin) redirect("/");
 
-  const { data: iscrizioni } = await supabase
+  // iscrizioni ha due FK verso profiles (corsista_id e verificata_da): senza
+  // l'hint esplicito PostgREST non sa quale usare e l'embed fallisce con un
+  // errore, che qui va sempre controllato esplicitamente (altrimenti la query
+  // fallisce silenziosamente e la pagina sembra solo "vuota").
+  const { data: iscrizioni, error } = await supabase
     .from("iscrizioni")
     .select(
-      "id, stato, prezzo_snapshot, cro, cro_inserito_at, nota_admin, corsi(titolo), profiles(nome, cognome, email)",
+      "id, stato, prezzo_snapshot, cro, cro_inserito_at, nota_admin, corsi(titolo), profiles!corsista_id(nome, cognome, email)",
     )
     .in("stato", ["cro_inserito", "cro_da_chiarire"])
     .order("cro_inserito_at", { ascending: true });
+
+  if (error) {
+    console.error("[coda-verifica] errore nel caricamento", error);
+  }
 
   return (
     <div className="space-y-6">

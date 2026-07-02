@@ -12,7 +12,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export function CorsoForm() {
   const [titolo, setTitolo] = useState("");
   const [descrizione, setDescrizione] = useState("");
+  const [calendario, setCalendario] = useState("");
   const [prezzo, setPrezzo] = useState("");
+  const [postiDisponibili, setPostiDisponibili] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -25,8 +27,10 @@ export function CorsoForm() {
     const risultato = await creaCorso({
       titolo,
       descrizione,
+      calendario,
       prezzo: Number(prezzo),
       attivo: true,
+      posti_disponibili: postiDisponibili.trim() === "" ? null : Number(postiDisponibili),
     });
 
     setIsLoading(false);
@@ -38,7 +42,9 @@ export function CorsoForm() {
 
     setTitolo("");
     setDescrizione("");
+    setCalendario("");
     setPrezzo("");
+    setPostiDisponibili("");
     router.refresh();
   };
 
@@ -58,16 +64,39 @@ export function CorsoForm() {
             <Textarea id="descrizione" value={descrizione} onChange={(e) => setDescrizione(e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="prezzo">Prezzo (€)</Label>
-            <Input
-              id="prezzo"
-              type="number"
-              min="0"
-              step="0.01"
-              required
-              value={prezzo}
-              onChange={(e) => setPrezzo(e.target.value)}
+            <Label htmlFor="calendario">Calendario / date</Label>
+            <Textarea
+              id="calendario"
+              placeholder="Facoltativo — es. date delle sessioni, moduli, ecc."
+              value={calendario}
+              onChange={(e) => setCalendario(e.target.value)}
             />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="prezzo">Prezzo (€)</Label>
+              <Input
+                id="prezzo"
+                type="number"
+                min="0"
+                step="0.01"
+                required
+                value={prezzo}
+                onChange={(e) => setPrezzo(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="posti_disponibili">Posti disponibili</Label>
+              <Input
+                id="posti_disponibili"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="Vuoto = illimitati"
+                value={postiDisponibili}
+                onChange={(e) => setPostiDisponibili(e.target.value)}
+              />
+            </div>
           </div>
 
           {error && (

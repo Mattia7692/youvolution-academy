@@ -50,7 +50,7 @@ export default async function CatalogoPage() {
               </CardContent>
               <CardFooter>
                 <Button asChild className="w-full">
-                  <Link href={`/iscrizione/${corso.id}/modulo-1`}>Iscriviti</Link>
+                  <Link href={`/iscrizione/${corso.id}/passo-1`}>Iscriviti</Link>
                 </Button>
               </CardFooter>
             </Card>

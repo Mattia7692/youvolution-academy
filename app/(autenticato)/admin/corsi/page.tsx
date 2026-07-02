@@ -9,10 +9,20 @@ export default async function GestioneCorsiPage() {
   const admin = await richiediAdmin(supabase);
   if (!admin) redirect("/");
 
-  const { data: corsi } = await supabase
-    .from("corsi")
-    .select("id, titolo, descrizione, prezzo, attivo")
-    .order("created_at", { ascending: false });
+  const [{ data: corsi }, { data: verificate }] = await Promise.all([
+    supabase
+      .from("corsi")
+      .select("id, titolo, descrizione, calendario, prezzo, attivo, posti_disponibili")
+      .order("created_at", { ascending: false }),
+    // Contiamo come "iscritti" solo le iscrizioni verificate (pagamento
+    // confermato), non le prenotazioni ancora in corso.
+    supabase.from("iscrizioni").select("corso_id").eq("stato", "verificata"),
+  ]);
+
+  const conteggi = new Map<string, number>();
+  for (const riga of verificate ?? []) {
+    conteggi.set(riga.corso_id, (conteggi.get(riga.corso_id) ?? 0) + 1);
+  }
 
   return (
     <div className="space-y-6">
@@ -29,7 +39,9 @@ export default async function GestioneCorsiPage() {
         {!corsi || corsi.length === 0 ? (
           <p className="text-muted-foreground">Nessun corso creato ancora.</p>
         ) : (
-          corsi.map((corso) => <CorsoRiga key={corso.id} corso={corso} />)
+          corsi.map((corso) => (
+            <CorsoRiga key={corso.id} corso={corso} iscritti={conteggi.get(corso.id) ?? 0} />
+          ))
         )}
       </div>
     </div>

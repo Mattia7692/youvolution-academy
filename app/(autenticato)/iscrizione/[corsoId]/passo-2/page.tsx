@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Modulo2Form } from "@/components/modulo-2-form";
+import { Passo2Form } from "@/components/passo-2-form";
 
 function formattaPrezzo(prezzo: number) {
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(prezzo);
 }
 
-export default async function Modulo2Page({
+export default async function Passo2Page({
   params,
 }: {
   params: Promise<{ corsoId: string }>;
@@ -30,7 +30,7 @@ export default async function Modulo2Page({
     .maybeSingle();
 
   if (!iscrizione) {
-    redirect(`/iscrizione/${corsoId}/modulo-1`);
+    redirect(`/iscrizione/${corsoId}/passo-1`);
   }
 
   const corso = Array.isArray(iscrizione.corsi) ? iscrizione.corsi[0] : iscrizione.corsi;
@@ -38,7 +38,10 @@ export default async function Modulo2Page({
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">Iscrizione — Modulo 2</h1>
+        <h1 className="text-2xl font-semibold text-foreground">
+          Iscrizione — Passo 2 di 2
+        </h1>
+        <p className="text-sm text-muted-foreground">Conferma del bonifico</p>
         <p className="text-muted-foreground mt-1">
           {corso?.titolo} — {formattaPrezzo(iscrizione.prezzo_snapshot)}
         </p>
@@ -55,7 +58,7 @@ export default async function Modulo2Page({
         </p>
       </div>
 
-      <Modulo2Form iscrizioneId={iscrizione.id} />
+      <Passo2Form iscrizioneId={iscrizione.id} />
     </div>
   );
 }
