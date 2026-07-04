@@ -22,6 +22,23 @@ export default async function CatalogoPage() {
     .eq("attivo", true)
     .order("created_at", { ascending: true });
 
+  // Corsi per cui l'utente ha già riservato il posto (passo 1 completato) ma
+  // non ha ancora inserito il CRO: nel catalogo li segnaliamo per farlo
+  // tornare a completare l'iscrizione invece di ripartire da zero.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let corsiInSospeso = new Set<string>();
+  if (user) {
+    const { data: sospese } = await supabase
+      .from("iscrizioni")
+      .select("corso_id")
+      .eq("corsista_id", user.id)
+      .eq("stato", "in_attesa_pagamento");
+    corsiInSospeso = new Set((sospese ?? []).map((s) => s.corso_id));
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -35,26 +52,44 @@ export default async function CatalogoPage() {
         <p className="text-muted-foreground">Nessun corso disponibile al momento.</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {corsi.map((corso) => (
-            <Card key={corso.id}>
-              <CardHeader>
-                <CardTitle>{corso.titolo}</CardTitle>
-                {corso.descrizione && (
-                  <CardDescription>{corso.descrizione}</CardDescription>
-                )}
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold text-primary">
-                  {formattaPrezzo(corso.prezzo)}
-                </p>
-              </CardContent>
-              <CardFooter>
-                <Button asChild className="w-full">
-                  <Link href={`/iscrizione/${corso.id}/passo-1`}>Iscriviti</Link>
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+          {corsi.map((corso) => {
+            const inSospeso = corsiInSospeso.has(corso.id);
+            return (
+              <Card
+                key={corso.id}
+                className={
+                  inSospeso ? "border-orange-300 bg-orange-50 dark:bg-orange-950/20" : undefined
+                }
+              >
+                <CardHeader>
+                  <CardTitle>{corso.titolo}</CardTitle>
+                  {corso.descrizione && (
+                    <CardDescription>{corso.descrizione}</CardDescription>
+                  )}
+                  {inSospeso && (
+                    <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mt-1">
+                      Iscrizione in corso — completa il pagamento
+                    </p>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-semibold text-primary">
+                    {formattaPrezzo(corso.prezzo)}
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    asChild
+                    className={inSospeso ? "w-full bg-orange-600 hover:bg-orange-700" : "w-full"}
+                  >
+                    <Link href={`/iscrizione/${corso.id}/${inSospeso ? "passo-2" : "passo-1"}`}>
+                      {inSospeso ? "Continua iscrizione" : "Iscriviti"}
+                    </Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
