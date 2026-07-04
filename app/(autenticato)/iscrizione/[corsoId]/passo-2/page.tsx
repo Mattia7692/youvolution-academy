@@ -47,6 +47,16 @@ export default async function Passo2Page({
         </p>
       </div>
 
+      <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-5 text-sm text-green-800 dark:text-green-400 space-y-1">
+        <p className="font-medium text-green-900 dark:text-green-300">
+          I tuoi dati sono stati salvati e il tuo posto è riservato
+        </p>
+        <p>
+          Se vuoi puoi effettuare il bonifico adesso, oppure tornare su questa pagina
+          quando preferisci per completare l&apos;iscrizione.
+        </p>
+      </div>
+
       <div className="rounded-xl border border-border bg-muted/50 p-5 text-sm text-muted-foreground space-y-1">
         <p className="font-medium text-foreground">Coordinate bonifico</p>
         <p>Beneficiario: Youvolution</p>

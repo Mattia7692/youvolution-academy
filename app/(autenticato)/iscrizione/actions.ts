@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 export type DatiFiscali = {
-  tipo_soggetto: "privato" | "azienda";
+  tipo_soggetto: "privato" | "azienda" | "libero_professionista";
   ragione_sociale: string;
   codice_fiscale: string;
   partita_iva: string;

@@ -51,27 +51,37 @@ export default async function AutenticatoLayout({
     ]);
 
     nav = [
-      { href: "/admin/prenotazioni", etichetta: "Prenotazioni", badge: prenotazioni ?? 0 },
-      { href: "/admin/coda-verifica", etichetta: "Coda di verifica", badge: coda ?? 0 },
-      { href: "/admin/corsi", etichetta: "Gestione corsi" },
+      { href: "/admin/corsi", etichetta: "Gestione corsi", gruppo: "CORSI" },
+      {
+        href: "/admin/prenotazioni",
+        etichetta: "Prenotazioni",
+        badge: prenotazioni ?? 0,
+        gruppo: "ISCRIZIONI",
+      },
+      {
+        href: "/admin/coda-verifica",
+        etichetta: "Coda di verifica",
+        badge: coda ?? 0,
+        gruppo: "ISCRIZIONI",
+      },
     ];
   }
 
   const iniziali = `${profilo.nome[0] ?? ""}${profilo.cognome[0] ?? ""}`.toUpperCase();
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="h-screen flex bg-background">
       <aside
         style={{ background: SFONDO_SIDEBAR }}
-        className="w-64 shrink-0 flex flex-col p-5 gap-6"
+        className="w-[280px] shrink-0 flex flex-col p-5 gap-6 overflow-y-auto"
       >
-        <Link href="/" className="block">
+        <Link href="/" className="block pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
           <Image
             src={logo}
             alt="Youvolution"
-            width={168}
-            height={32}
-            style={{ width: "168px", height: "auto" }}
+            width={240}
+            height={46}
+            style={{ width: "240px", height: "auto" }}
             priority
           />
         </Link>

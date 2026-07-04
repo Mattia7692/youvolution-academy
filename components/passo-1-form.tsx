@@ -51,6 +51,14 @@ export function Passo1Form({ corsoId }: { corsoId: string }) {
   };
 
   const isAzienda = dati.tipo_soggetto === "azienda";
+  const isLiberoProfessionista = dati.tipo_soggetto === "libero_professionista";
+  const richiedePartitaIva = isAzienda || isLiberoProfessionista;
+
+  const etichettaRagioneSociale = isAzienda
+    ? "Ragione sociale"
+    : isLiberoProfessionista
+      ? "Nome e cognome / Ragione sociale"
+      : "Nome e cognome fatturazione";
 
   return (
     <form onSubmit={handleSubmit} className="rounded-xl bg-card border border-border shadow-xl p-7 flex flex-col gap-5">
@@ -61,11 +69,17 @@ export function Passo1Form({ corsoId }: { corsoId: string }) {
           onValueChange={(value) =>
             setDati((prev) => ({ ...prev, tipo_soggetto: value as DatiFiscali["tipo_soggetto"] }))
           }
-          className="flex gap-6"
+          className="flex flex-wrap gap-6"
         >
           <div className="flex items-center gap-2">
             <RadioGroupItem value="privato" id="tipo-privato" />
             <Label htmlFor="tipo-privato" className="font-normal">Privato</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="libero_professionista" id="tipo-libero-professionista" />
+            <Label htmlFor="tipo-libero-professionista" className="font-normal">
+              Libero professionista
+            </Label>
           </div>
           <div className="flex items-center gap-2">
             <RadioGroupItem value="azienda" id="tipo-azienda" />
@@ -75,9 +89,7 @@ export function Passo1Form({ corsoId }: { corsoId: string }) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="ragione_sociale">
-          {isAzienda ? "Ragione sociale" : "Nome e cognome fatturazione"}
-        </Label>
+        <Label htmlFor="ragione_sociale">{etichettaRagioneSociale}</Label>
         <Input id="ragione_sociale" required {...campo("ragione_sociale")} />
       </div>
 
@@ -86,7 +98,7 @@ export function Passo1Form({ corsoId }: { corsoId: string }) {
           <Label htmlFor="codice_fiscale">Codice fiscale</Label>
           <Input id="codice_fiscale" required {...campo("codice_fiscale")} />
         </div>
-        {isAzienda && (
+        {richiedePartitaIva && (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="partita_iva">Partita IVA</Label>
             <Input id="partita_iva" required {...campo("partita_iva")} />
