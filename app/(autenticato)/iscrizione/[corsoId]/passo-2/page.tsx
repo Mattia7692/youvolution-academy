@@ -59,8 +59,9 @@ export default async function Passo2Page({
 
       <div className="rounded-xl border border-border bg-muted/50 p-5 text-sm text-muted-foreground space-y-1">
         <p className="font-medium text-foreground">Coordinate bonifico</p>
-        <p>Beneficiario: Youvolution</p>
-        <p>IBAN: da comunicare</p>
+        <p>Beneficiario: YOUVOLUTION SRL SOCIETA&apos; BENEFIT</p>
+        <p>Banca: Allianz Bank</p>
+        <p>IBAN: IT84 L035 8901 6000 1057 0950 025</p>
         <p>Causale: iscrizione {corso?.titolo} — {user.email}</p>
         <p>
           Effettua il bonifico per l&apos;importo indicato sopra, poi inserisci qui
