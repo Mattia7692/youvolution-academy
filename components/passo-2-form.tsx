@@ -52,7 +52,7 @@ export function Passo2Form({ iscrizioneId }: { iscrizioneId: string }) {
       )}
 
       <Button type="submit" className="w-full mt-1" disabled={isLoading}>
-        {isLoading ? "Invio in corso…" : "Invia per la verifica"}
+        {isLoading ? "Invio in corso…" : "Completa iscrizione"}
       </Button>
     </form>
   );
