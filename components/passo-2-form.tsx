@@ -9,6 +9,9 @@ import { Label } from "@/components/ui/label";
 
 export function Passo2Form({ iscrizioneId }: { iscrizioneId: string }) {
   const [cro, setCro] = useState("");
+  const [data, setData] = useState("");
+  const [bancaOrdinante, setBancaOrdinante] = useState("");
+  const [ammontare, setAmmontare] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -18,7 +21,7 @@ export function Passo2Form({ iscrizioneId }: { iscrizioneId: string }) {
     setError(null);
     setIsLoading(true);
 
-    const risultato = await salvaPasso2(iscrizioneId, cro);
+    const risultato = await salvaPasso2(iscrizioneId, { cro, data, bancaOrdinante, ammontare });
     setIsLoading(false);
 
     if (!risultato.ok) {
@@ -34,6 +37,36 @@ export function Passo2Form({ iscrizioneId }: { iscrizioneId: string }) {
       onSubmit={handleSubmit}
       className="rounded-xl bg-card border border-border shadow-xl p-7 flex flex-col gap-5"
     >
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="data">Data bonifico</Label>
+          <Input id="data" type="date" required value={data} onChange={(e) => setData(e.target.value)} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="ammontare">Ammontare (€)</Label>
+          <Input
+            id="ammontare"
+            type="number"
+            min="0"
+            step="0.01"
+            required
+            value={ammontare}
+            onChange={(e) => setAmmontare(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="banca_ordinante">Banca ordinante</Label>
+        <Input
+          id="banca_ordinante"
+          required
+          value={bancaOrdinante}
+          onChange={(e) => setBancaOrdinante(e.target.value)}
+          placeholder="Es. Intesa Sanpaolo"
+        />
+      </div>
+
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="cro">CRO del bonifico</Label>
         <Input

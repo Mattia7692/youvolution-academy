@@ -13,7 +13,9 @@ export function CorsoForm() {
   const [titolo, setTitolo] = useState("");
   const [descrizione, setDescrizione] = useState("");
   const [calendario, setCalendario] = useState("");
-  const [prezzo, setPrezzo] = useState("");
+  const [imponibile, setImponibile] = useState("");
+  const [scadenzaIscrizione, setScadenzaIscrizione] = useState("");
+  const [dataInizio, setDataInizio] = useState("");
   const [postiDisponibili, setPostiDisponibili] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,14 +26,17 @@ export function CorsoForm() {
     setError(null);
     setIsLoading(true);
 
-    const risultato = await creaCorso({
-      titolo,
-      descrizione,
-      calendario,
-      prezzo: Number(prezzo),
-      attivo: true,
-      posti_disponibili: postiDisponibili.trim() === "" ? null : Number(postiDisponibili),
-    });
+    const risultato = await creaCorso(
+      { titolo, descrizione, calendario, attivo: true },
+      {
+        titolo,
+        imponibile: Number(imponibile),
+        scadenza_iscrizione: scadenzaIscrizione,
+        data_inizio: dataInizio,
+        posti_disponibili: postiDisponibili.trim() === "" ? null : Number(postiDisponibili),
+        iscrizioni_chiuse: false,
+      },
+    );
 
     setIsLoading(false);
 
@@ -43,7 +48,9 @@ export function CorsoForm() {
     setTitolo("");
     setDescrizione("");
     setCalendario("");
-    setPrezzo("");
+    setImponibile("");
+    setScadenzaIscrizione("");
+    setDataInizio("");
     setPostiDisponibili("");
     router.refresh();
   };
@@ -67,22 +74,31 @@ export function CorsoForm() {
             <Label htmlFor="calendario">Calendario / date</Label>
             <Textarea
               id="calendario"
-              placeholder="Facoltativo — es. date delle sessioni, moduli, ecc."
+              placeholder="Facoltativo — es. orari, sede, ecc."
               value={calendario}
               onChange={(e) => setCalendario(e.target.value)}
             />
           </div>
+
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-1">
+            Prezzo e scadenze
+          </p>
+          <p className="text-xs text-muted-foreground -mt-3">
+            Il corso nasce con un solo modulo. Se in futuro serviranno più moduli o un pacchetto,
+            si aggiungono dal dettaglio del corso.
+          </p>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="prezzo">Prezzo (€)</Label>
+              <Label htmlFor="imponibile">Imponibile (€)</Label>
               <Input
-                id="prezzo"
+                id="imponibile"
                 type="number"
                 min="0"
                 step="0.01"
                 required
-                value={prezzo}
-                onChange={(e) => setPrezzo(e.target.value)}
+                value={imponibile}
+                onChange={(e) => setImponibile(e.target.value)}
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -98,6 +114,32 @@ export function CorsoForm() {
               />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="scadenza_iscrizione">Scadenza iscrizione</Label>
+              <Input
+                id="scadenza_iscrizione"
+                type="date"
+                required
+                value={scadenzaIscrizione}
+                onChange={(e) => setScadenzaIscrizione(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="data_inizio">Data di inizio</Label>
+              <Input
+                id="data_inizio"
+                type="date"
+                required
+                value={dataInizio}
+                onChange={(e) => setDataInizio(e.target.value)}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground -mt-2">
+            L&apos;early bird (-10%) si calcola da solo: scade 16 giorni prima della data di inizio
+            del primo modulo del corso.
+          </p>
 
           {error && (
             <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">

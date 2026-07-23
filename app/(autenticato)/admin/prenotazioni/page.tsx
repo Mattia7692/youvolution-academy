@@ -1,11 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { richiediAdmin } from "@/lib/roles";
-
-function formattaPrezzo(prezzo: number | null) {
-  if (prezzo === null) return "—";
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(prezzo);
-}
+import { formattaPrezzo } from "@/lib/prezzo";
 
 function formattaData(data: string) {
   return new Intl.DateTimeFormat("it-IT", { dateStyle: "medium", timeStyle: "short" }).format(
@@ -25,7 +21,7 @@ export default async function PrenotazioniPage() {
   const { data: iscrizioni, error } = await supabase
     .from("iscrizioni")
     .select(
-      "id, prezzo_snapshot, created_at, corsi(titolo), profiles!corsista_id(nome, cognome, email)",
+      "id, totale_snapshot, created_at, corsi(titolo), profiles!corsista_id(nome, cognome, email)",
     )
     .eq("stato", "in_attesa_pagamento")
     .order("created_at", { ascending: true });
@@ -64,7 +60,7 @@ export default async function PrenotazioniPage() {
                     {corsista?.nome} {corsista?.cognome} · {corsista?.email}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {formattaPrezzo(iscrizione.prezzo_snapshot)}
+                    {formattaPrezzo(iscrizione.totale_snapshot)}
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground">

@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Passo2Form } from "@/components/passo-2-form";
-
-function formattaPrezzo(prezzo: number) {
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(prezzo);
-}
+import { formattaPrezzo } from "@/lib/prezzo";
 
 export default async function Passo2Page({
   params,
@@ -21,7 +18,7 @@ export default async function Passo2Page({
 
   const { data: iscrizione } = await supabase
     .from("iscrizioni")
-    .select("id, prezzo_snapshot, corsi(titolo)")
+    .select("id, totale_snapshot, corsi(titolo)")
     .eq("corsista_id", user.id)
     .eq("corso_id", corsoId)
     .eq("stato", "in_attesa_pagamento")
@@ -43,7 +40,7 @@ export default async function Passo2Page({
         </h1>
         <p className="text-sm text-muted-foreground">Conferma del bonifico</p>
         <p className="text-muted-foreground mt-1">
-          {corso?.titolo} — {formattaPrezzo(iscrizione.prezzo_snapshot)}
+          {corso?.titolo} — {formattaPrezzo(iscrizione.totale_snapshot)}
         </p>
       </div>
 

@@ -2,10 +2,6 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Passo1Form } from "@/components/passo-1-form";
 
-function formattaPrezzo(prezzo: number) {
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(prezzo);
-}
-
 export default async function Passo1Page({
   params,
 }: {
@@ -16,7 +12,7 @@ export default async function Passo1Page({
 
   const { data: corso } = await supabase
     .from("corsi")
-    .select("id, titolo, prezzo, attivo")
+    .select("id, titolo, attivo")
     .eq("id", corsoId)
     .maybeSingle();
 
@@ -54,18 +50,46 @@ export default async function Passo1Page({
     }
   }
 
+  const [{ data: moduli }, { data: pacchetti }, { data: pacchettoModuli }] = await Promise.all([
+    supabase
+      .from("moduli_corso")
+      .select("id, titolo, imponibile, scadenza_iscrizione, data_inizio")
+      .eq("corso_id", corsoId)
+      .eq("attivo", true)
+      .order("ordine", { ascending: true }),
+    supabase
+      .from("pacchetti_corso")
+      .select("id, titolo, imponibile, scadenza_iscrizione")
+      .eq("corso_id", corsoId)
+      .eq("attivo", true),
+    supabase.from("pacchetto_moduli").select("pacchetto_id, modulo_id"),
+  ]);
+
+  const moduliIdsPerPacchetto = new Map<string, string[]>();
+  for (const riga of pacchettoModuli ?? []) {
+    const lista = moduliIdsPerPacchetto.get(riga.pacchetto_id) ?? [];
+    lista.push(riga.modulo_id);
+    moduliIdsPerPacchetto.set(riga.pacchetto_id, lista);
+  }
+
+  const pacchettiConModuli = (pacchetti ?? []).map((p) => ({
+    ...p,
+    moduloIds: moduliIdsPerPacchetto.get(p.id) ?? [],
+  }));
+
+  if (!moduli || moduli.length === 0) {
+    notFound();
+  }
+
   return (
-    <div className="max-w-lg mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">
           Iscrizione — Passo 1 di 2
         </h1>
-        <p className="text-sm text-muted-foreground">Dati fiscali e prezzo</p>
-        <p className="text-muted-foreground mt-1">
-          {corso.titolo} — {formattaPrezzo(corso.prezzo)}
-        </p>
+        <p className="text-muted-foreground mt-1">{corso.titolo}</p>
       </div>
-      <Passo1Form corsoId={corso.id} />
+      <Passo1Form corsoId={corso.id} moduli={moduli} pacchetti={pacchettiConModuli} />
     </div>
   );
 }

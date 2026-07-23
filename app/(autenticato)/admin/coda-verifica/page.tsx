@@ -3,11 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { richiediAdmin } from "@/lib/roles";
 import { CodaVerificaRiga } from "@/components/coda-verifica-riga";
 import type { StatoIscrizione } from "@/components/stato-badge";
-
-function formattaPrezzo(prezzo: number | null) {
-  if (prezzo === null) return "—";
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(prezzo);
-}
+import { formattaPrezzo } from "@/lib/prezzo";
 
 export default async function CodaVerificaPage() {
   const supabase = await createClient();
@@ -21,7 +17,7 @@ export default async function CodaVerificaPage() {
   const { data: iscrizioni, error } = await supabase
     .from("iscrizioni")
     .select(
-      "id, stato, prezzo_snapshot, cro, cro_inserito_at, nota_admin, corsi(titolo), profiles!corsista_id(nome, cognome, email)",
+      "id, stato, totale_snapshot, cro, cro_inserito_at, nota_admin, corsi(titolo), profiles!corsista_id(nome, cognome, email)",
     )
     .in("stato", ["cro_inserito", "cro_da_chiarire"])
     .order("cro_inserito_at", { ascending: true });
@@ -55,7 +51,7 @@ export default async function CodaVerificaPage() {
                 iscrizioneId={iscrizione.id}
                 stato={iscrizione.stato as StatoIscrizione}
                 corsoTitolo={corso?.titolo ?? "Corso"}
-                prezzo={formattaPrezzo(iscrizione.prezzo_snapshot)}
+                prezzo={formattaPrezzo(iscrizione.totale_snapshot)}
                 cro={iscrizione.cro}
                 notaAdmin={iscrizione.nota_admin}
                 corsistaNome={`${corsista?.nome ?? ""} ${corsista?.cognome ?? ""}`.trim()}

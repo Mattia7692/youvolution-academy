@@ -52,6 +52,7 @@ export default async function AutenticatoLayout({
 
     nav = [
       { href: "/admin/corsi", etichetta: "Gestione corsi", gruppo: "CORSI" },
+      { href: "/admin/codici-sconto", etichetta: "Codici sconto", gruppo: "CORSI" },
       {
         href: "/admin/prenotazioni",
         etichetta: "Prenotazioni",

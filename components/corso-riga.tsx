@@ -8,35 +8,55 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { formattaPrezzo } from "@/lib/prezzo";
+import type { ModuloCorso } from "@/components/modulo-riga";
+import type { PacchettoCorso } from "@/components/pacchetto-riga";
 
 export type Corso = {
   id: string;
   titolo: string;
   descrizione: string | null;
   calendario: string | null;
-  prezzo: number | null;
   attivo: boolean;
-  posti_disponibili: number | null;
 };
 
-function formattaPrezzo(prezzo: number | null) {
-  if (prezzo === null) return "Prezzo da impostare";
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(prezzo);
+function riepilogoPrezzo(moduli: ModuloCorso[], pacchetti: PacchettoCorso[]) {
+  const moduliAttivi = moduli.filter((m) => m.attivo);
+  if (moduliAttivi.length === 0 && pacchetti.filter((p) => p.attivo).length === 0) {
+    return "Nessun modulo configurato";
+  }
+  if (moduliAttivi.length === 1 && pacchetti.length === 0) {
+    return `${formattaPrezzo(moduliAttivi[0].imponibile)} + IVA`;
+  }
+  const prezzi = moduliAttivi.map((m) => m.imponibile);
+  const min = prezzi.length ? Math.min(...prezzi) : null;
+  return `${moduliAttivi.length} moduli${pacchetti.length ? ` · ${pacchetti.length} pacchetto/i` : ""}${
+    min !== null ? ` · da ${formattaPrezzo(min)} + IVA` : ""
+  }`;
 }
 
-export function CorsoRiga({ corso, iscritti }: { corso: Corso; iscritti: number }) {
+export function CorsoRiga({
+  corso,
+  moduli,
+  pacchetti,
+  iscritti,
+}: {
+  corso: Corso;
+  moduli: ModuloCorso[];
+  pacchetti: PacchettoCorso[];
+  iscritti: number;
+}) {
   const [inModifica, setInModifica] = useState(false);
   const [titolo, setTitolo] = useState(corso.titolo);
   const [descrizione, setDescrizione] = useState(corso.descrizione ?? "");
   const [calendario, setCalendario] = useState(corso.calendario ?? "");
-  const [prezzo, setPrezzo] = useState(corso.prezzo === null ? "" : String(corso.prezzo));
-  const [postiDisponibili, setPostiDisponibili] = useState(
-    corso.posti_disponibili === null ? "" : String(corso.posti_disponibili),
-  );
   const [confermaEliminazione, setConfermaEliminazione] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  const nienteAcquistabile =
+    moduli.filter((m) => m.attivo).length === 0 && pacchetti.filter((p) => p.attivo).length === 0;
 
   const handleElimina = async () => {
     setError(null);
@@ -54,13 +74,7 @@ export function CorsoRiga({ corso, iscritti }: { corso: Corso; iscritti: number 
   const handleSalva = async () => {
     setError(null);
     setIsLoading(true);
-    const risultato = await aggiornaCorso(corso.id, {
-      titolo,
-      descrizione,
-      calendario,
-      prezzo: prezzo.trim() === "" ? null : Number(prezzo),
-      posti_disponibili: postiDisponibili.trim() === "" ? null : Number(postiDisponibili),
-    });
+    const risultato = await aggiornaCorso(corso.id, { titolo, descrizione, calendario });
     setIsLoading(false);
     if (!risultato.ok) {
       setError(risultato.error);
@@ -96,24 +110,6 @@ export function CorsoRiga({ corso, iscritti }: { corso: Corso; iscritti: number 
           onChange={(e) => setCalendario(e.target.value)}
           placeholder="Calendario / date (facoltativo)"
         />
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="Prezzo (€)"
-            value={prezzo}
-            onChange={(e) => setPrezzo(e.target.value)}
-          />
-          <Input
-            type="number"
-            min="0"
-            step="1"
-            placeholder="Posti disponibili (vuoto = illimitati)"
-            value={postiDisponibili}
-            onChange={(e) => setPostiDisponibili(e.target.value)}
-          />
-        </div>
         {error && (
           <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
             {error}
@@ -141,7 +137,7 @@ export function CorsoRiga({ corso, iscritti }: { corso: Corso; iscritti: number 
           <Badge variant={corso.attivo ? "default" : "secondary"}>
             {corso.attivo ? "Attivo" : "Disattivato"}
           </Badge>
-          {corso.prezzo === null && <Badge variant="destructive">Da revisionare</Badge>}
+          {nienteAcquistabile && <Badge variant="destructive">Da configurare</Badge>}
         </div>
         {corso.descrizione && (
           <p className="text-sm text-muted-foreground mt-1 line-clamp-2 max-w-2xl">
@@ -154,13 +150,12 @@ export function CorsoRiga({ corso, iscritti }: { corso: Corso; iscritti: number 
           </p>
         )}
         <p className="text-sm text-muted-foreground mt-1">
-          {formattaPrezzo(corso.prezzo)} · {iscritti}
-          {corso.posti_disponibili !== null ? ` / ${corso.posti_disponibili}` : ""} iscritti
+          {riepilogoPrezzo(moduli, pacchetti)} · {iscritti} iscritti verificati
         </p>
       </div>
       <div className="flex gap-2">
         <Button asChild size="sm" variant="outline">
-          <Link href={`/admin/corsi/${corso.id}`}>Vedi iscritti</Link>
+          <Link href={`/admin/corsi/${corso.id}`}>Gestisci moduli e iscritti</Link>
         </Button>
         <Button size="sm" variant="outline" onClick={() => setInModifica(true)} disabled={isLoading}>
           Modifica

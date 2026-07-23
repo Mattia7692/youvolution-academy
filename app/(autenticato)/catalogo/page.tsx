@@ -9,18 +9,30 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
-function formattaPrezzo(prezzo: number) {
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(prezzo);
-}
+import { formattaPrezzo } from "@/lib/prezzo";
 
 export default async function CatalogoPage() {
   const supabase = await createClient();
-  const { data: corsi } = await supabase
-    .from("corsi")
-    .select("id, titolo, descrizione, prezzo")
-    .eq("attivo", true)
-    .order("created_at", { ascending: true });
+  const [{ data: corsi }, { data: moduli }, { data: pacchetti }] = await Promise.all([
+    supabase
+      .from("corsi")
+      .select("id, titolo, descrizione")
+      .eq("attivo", true)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("moduli_corso")
+      .select("corso_id, imponibile")
+      .eq("attivo", true),
+    supabase.from("pacchetti_corso").select("corso_id").eq("attivo", true),
+  ]);
+
+  const moduliPerCorso = new Map<string, number[]>();
+  for (const m of moduli ?? []) {
+    const lista = moduliPerCorso.get(m.corso_id) ?? [];
+    lista.push(m.imponibile);
+    moduliPerCorso.set(m.corso_id, lista);
+  }
+  const haPacchetto = new Set((pacchetti ?? []).map((p) => p.corso_id));
 
   // Corsi per cui l'utente ha già riservato il posto (passo 1 completato) ma
   // non ha ancora inserito il CRO: nel catalogo li segnaliamo per farlo
@@ -54,6 +66,10 @@ export default async function CatalogoPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           {corsi.map((corso) => {
             const inSospeso = corsiInSospeso.has(corso.id);
+            const prezzi = moduliPerCorso.get(corso.id) ?? [];
+            const prezzoMinimo = prezzi.length ? Math.min(...prezzi) : null;
+            const daPiuModuli = prezzi.length > 1 || haPacchetto.has(corso.id);
+
             return (
               <Card
                 key={corso.id}
@@ -74,8 +90,14 @@ export default async function CatalogoPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-semibold text-primary">
-                    {formattaPrezzo(corso.prezzo)}
+                    {prezzoMinimo === null ? "—" : (
+                      <>
+                        {daPiuModuli && "da "}
+                        {formattaPrezzo(prezzoMinimo)}
+                      </>
+                    )}
                   </p>
+                  <p className="text-xs text-muted-foreground mt-1">+ IVA</p>
                 </CardContent>
                 <CardFooter>
                   <Button

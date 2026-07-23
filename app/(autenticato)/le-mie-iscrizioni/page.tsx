@@ -2,17 +2,13 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { StatoBadge, type StatoIscrizione } from "@/components/stato-badge";
 import { Button } from "@/components/ui/button";
-
-function formattaPrezzo(prezzo: number | null) {
-  if (prezzo === null) return "—";
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(prezzo);
-}
+import { formattaPrezzo } from "@/lib/prezzo";
 
 export default async function LeMieIscrizioniPage() {
   const supabase = await createClient();
   const { data: iscrizioni } = await supabase
     .from("iscrizioni")
-    .select("id, corso_id, stato, prezzo_snapshot, cro, nota_admin, created_at, corsi(titolo)")
+    .select("id, corso_id, stato, totale_snapshot, cro, nota_admin, created_at, corsi(titolo)")
     .order("created_at", { ascending: false });
 
   return (
@@ -43,7 +39,7 @@ export default async function LeMieIscrizioniPage() {
                 <div>
                   <p className="font-medium text-foreground">{corso?.titolo ?? "Corso"}</p>
                   <p className="text-sm text-muted-foreground">
-                    {formattaPrezzo(iscrizione.prezzo_snapshot)}
+                    {formattaPrezzo(iscrizione.totale_snapshot)}
                     {iscrizione.cro && ` · CRO ${iscrizione.cro}`}
                   </p>
                   {iscrizione.stato === "cro_da_chiarire" && iscrizione.nota_admin && (
