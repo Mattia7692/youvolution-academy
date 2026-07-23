@@ -13,10 +13,6 @@ export function CorsoForm() {
   const [titolo, setTitolo] = useState("");
   const [descrizione, setDescrizione] = useState("");
   const [calendario, setCalendario] = useState("");
-  const [imponibile, setImponibile] = useState("");
-  const [scadenzaIscrizione, setScadenzaIscrizione] = useState("");
-  const [dataInizio, setDataInizio] = useState("");
-  const [postiDisponibili, setPostiDisponibili] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -26,17 +22,7 @@ export function CorsoForm() {
     setError(null);
     setIsLoading(true);
 
-    const risultato = await creaCorso(
-      { titolo, descrizione, calendario, attivo: true },
-      {
-        titolo,
-        imponibile: Number(imponibile),
-        scadenza_iscrizione: scadenzaIscrizione,
-        data_inizio: dataInizio,
-        posti_disponibili: postiDisponibili.trim() === "" ? null : Number(postiDisponibili),
-        iscrizioni_chiuse: false,
-      },
-    );
+    const risultato = await creaCorso({ titolo, descrizione, calendario });
 
     setIsLoading(false);
 
@@ -45,14 +31,7 @@ export function CorsoForm() {
       return;
     }
 
-    setTitolo("");
-    setDescrizione("");
-    setCalendario("");
-    setImponibile("");
-    setScadenzaIscrizione("");
-    setDataInizio("");
-    setPostiDisponibili("");
-    router.refresh();
+    router.push(`/admin/corsi/${risultato.corsoId}`);
   };
 
   return (
@@ -80,65 +59,10 @@ export function CorsoForm() {
             />
           </div>
 
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-1">
-            Prezzo e scadenze
-          </p>
-          <p className="text-xs text-muted-foreground -mt-3">
-            Il corso nasce con un solo modulo. Se in futuro serviranno più moduli o un pacchetto,
-            si aggiungono dal dettaglio del corso.
-          </p>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="imponibile">Imponibile (€)</Label>
-              <Input
-                id="imponibile"
-                type="number"
-                min="0"
-                step="0.01"
-                required
-                value={imponibile}
-                onChange={(e) => setImponibile(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="posti_disponibili">Posti disponibili</Label>
-              <Input
-                id="posti_disponibili"
-                type="number"
-                min="0"
-                step="1"
-                placeholder="Vuoto = illimitati"
-                value={postiDisponibili}
-                onChange={(e) => setPostiDisponibili(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="scadenza_iscrizione">Scadenza iscrizione</Label>
-              <Input
-                id="scadenza_iscrizione"
-                type="date"
-                required
-                value={scadenzaIscrizione}
-                onChange={(e) => setScadenzaIscrizione(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="data_inizio">Data di inizio</Label>
-              <Input
-                id="data_inizio"
-                type="date"
-                required
-                value={dataInizio}
-                onChange={(e) => setDataInizio(e.target.value)}
-              />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground -mt-2">
-            L&apos;early bird (-10%) si calcola da solo: scade 16 giorni prima della data di inizio
-            del primo modulo del corso.
+          <p className="text-xs text-muted-foreground -mt-1">
+            Il corso nasce come contenitore vuoto e disattivato. Prezzo, scadenze e posti si
+            aggiungono subito dopo, creando i moduli nella pagina del corso — anche un corso
+            a modulo singolo funziona così.
           </p>
 
           {error && (

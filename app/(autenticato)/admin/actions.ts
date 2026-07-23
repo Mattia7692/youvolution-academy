@@ -60,20 +60,17 @@ function validaModulo(dati: DatiModulo): string | null {
   return null;
 }
 
-// Crea il corso insieme al suo primo modulo: un corso mono-modulo e' sempre e
-// solo un corso con un solo modulo, non un modello di prezzo separato. Il
-// corso nasce disattivato e viene attivato solo dopo che il modulo esiste
-// davvero, per non lasciare mai un corso "attivo" senza nulla da acquistare.
-export async function creaCorso(datiCorso: DatiCorso, primoModulo: DatiModulo) {
+// Crea solo il contenitore: titolo, descrizione, calendario. Nasce sempre
+// disattivato, perche' senza almeno un modulo non c'e' nulla da acquistare —
+// i moduli (anche un unico modulo, per un corso "semplice") si aggiungono
+// dopo dal dettaglio del corso.
+export async function creaCorso(datiCorso: Pick<DatiCorso, "titolo" | "descrizione" | "calendario">) {
   const supabase = await createClient();
   const admin = await richiediAdmin(supabase);
   if (!admin) return { ok: false as const, error: "Non autorizzato." };
 
   const titolo = datiCorso.titolo.trim();
   if (!titolo) return { ok: false as const, error: "Il titolo è obbligatorio." };
-
-  const erroreModulo = validaModulo(primoModulo);
-  if (erroreModulo) return { ok: false as const, error: erroreModulo };
 
   const { data: corso, error: corsoError } = await supabase
     .from("corsi")
@@ -88,26 +85,6 @@ export async function creaCorso(datiCorso: DatiCorso, primoModulo: DatiModulo) {
 
   if (corsoError || !corso) {
     return { ok: false as const, error: corsoError?.message ?? "Errore nella creazione del corso." };
-  }
-
-  const { error: moduloError } = await supabase.from("moduli_corso").insert({
-    corso_id: corso.id,
-    titolo: primoModulo.titolo.trim(),
-    imponibile: primoModulo.imponibile,
-    scadenza_iscrizione: primoModulo.scadenza_iscrizione,
-    data_inizio: primoModulo.data_inizio,
-    posti_disponibili: primoModulo.posti_disponibili,
-    iscrizioni_chiuse: primoModulo.iscrizioni_chiuse,
-  });
-
-  if (moduloError) {
-    // Evita di lasciare un corso orfano senza alcun modulo acquistabile.
-    await supabase.from("corsi").delete().eq("id", corso.id);
-    return { ok: false as const, error: moduloError.message };
-  }
-
-  if (datiCorso.attivo) {
-    await supabase.from("corsi").update({ attivo: true }).eq("id", corso.id);
   }
 
   revalidatePath("/admin/corsi");

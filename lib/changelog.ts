@@ -7,6 +7,21 @@ export type VoceChangelog = {
 
 export const CHANGELOG: VoceChangelog[] = [
   {
+    versione: "v1.04",
+    data: "2026-07-23",
+    titolo: "Iscrizione allineata al modulo cartaceo",
+    modifiche: [
+      "Corsi multi-modulo con pacchetti a prezzo scontato",
+      "Early bird calcolato automaticamente (16 giorni prima dell'inizio del primo modulo)",
+      "Codice sconto singolo, non cumulabile con l'early bird",
+      "Prezzo scomposto in imponibile, IVA e totale",
+      "Nuovi campi anagrafici: cellulare, data di nascita, fatturazione alternativa",
+      "Doppio consenso richiesto: condizioni contrattuali e privacy",
+      "Coordinate bonifico aggiornate con i dati reali (beneficiario, banca, IBAN) e campi completi al passo 2 (data, ammontare, banca ordinante, CRO)",
+      "Pulsante di invio rinominato in \"Completa iscrizione\"",
+    ],
+  },
+  {
     versione: "v1.03",
     data: "2026-07-04",
     titolo: "Pagina Informazioni e catalogo con iscrizioni sospese",
