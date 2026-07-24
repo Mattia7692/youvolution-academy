@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { formattaData, formattaPrezzo } from "@/lib/prezzo";
+import { WebinarRiga, type WebinarModulo } from "@/components/webinar-riga";
+import { WebinarForm } from "@/components/webinar-form";
 
 export type ModuloCorso = {
   id: string;
@@ -23,7 +25,7 @@ export type ModuloCorso = {
   attivo: boolean;
 };
 
-export function ModuloRiga({ modulo }: { modulo: ModuloCorso }) {
+export function ModuloRiga({ modulo, webinar }: { modulo: ModuloCorso; webinar: WebinarModulo[] }) {
   const [inModifica, setInModifica] = useState(false);
   const [titolo, setTitolo] = useState(modulo.titolo);
   const [descrizione, setDescrizione] = useState(modulo.descrizione ?? "");
@@ -172,6 +174,16 @@ export function ModuloRiga({ modulo }: { modulo: ModuloCorso }) {
         <Button size="sm" variant="destructive" onClick={handleElimina} disabled={isLoading}>
           Elimina
         </Button>
+      </div>
+      {webinar.length > 0 && (
+        <div className="w-full space-y-1.5">
+          {webinar.map((w) => (
+            <WebinarRiga key={w.id} webinar={w} />
+          ))}
+        </div>
+      )}
+      <div className="w-full">
+        <WebinarForm moduloId={modulo.id} />
       </div>
       {error && (
         <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2 w-full">

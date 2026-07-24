@@ -51,3 +51,17 @@ export function formattaData(iso: string) {
     new Date(`${iso}T00:00:00`),
   );
 }
+
+export function formattaDataOra(iso: string) {
+  return new Intl.DateTimeFormat("it-IT", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
+}
+
+export function formattaOra(iso: string) {
+  return new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+}

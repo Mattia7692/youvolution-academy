@@ -81,6 +81,25 @@ export default async function Passo1Page({
     notFound();
   }
 
+  const moduliIds = moduli.map((m) => m.id);
+  const { data: webinarRows } =
+    moduliIds.length > 0
+      ? await supabase
+          .from("webinar_modulo")
+          .select("id, modulo_id, titolo, inizio, fine")
+          .in("modulo_id", moduliIds)
+          .order("ordine", { ascending: true })
+      : { data: [] };
+
+  const webinarPerModulo = new Map<string, { id: string; titolo: string; inizio: string; fine: string }[]>();
+  for (const w of webinarRows ?? []) {
+    const lista = webinarPerModulo.get(w.modulo_id) ?? [];
+    lista.push({ id: w.id, titolo: w.titolo, inizio: w.inizio, fine: w.fine });
+    webinarPerModulo.set(w.modulo_id, lista);
+  }
+
+  const moduliConWebinar = moduli.map((m) => ({ ...m, webinar: webinarPerModulo.get(m.id) ?? [] }));
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
@@ -89,7 +108,7 @@ export default async function Passo1Page({
         </h1>
         <p className="text-muted-foreground mt-1">{corso.titolo}</p>
       </div>
-      <Passo1Form corsoId={corso.id} moduli={moduli} pacchetti={pacchettiConModuli} />
+      <Passo1Form corsoId={corso.id} moduli={moduliConWebinar} pacchetti={pacchettiConModuli} />
     </div>
   );
 }

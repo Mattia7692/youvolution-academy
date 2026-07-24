@@ -56,6 +56,23 @@ export default async function DettaglioCorsoPage({
     console.error("[admin/corsi/:id] errore nel caricamento iscritti", error);
   }
 
+  const moduliIds = (moduli ?? []).map((m) => m.id);
+  const { data: webinarRows } =
+    moduliIds.length > 0
+      ? await supabase
+          .from("webinar_modulo")
+          .select("id, modulo_id, titolo, inizio, fine")
+          .in("modulo_id", moduliIds)
+          .order("ordine", { ascending: true })
+      : { data: [] };
+
+  const webinarPerModulo = new Map<string, { id: string; titolo: string; inizio: string; fine: string }[]>();
+  for (const w of webinarRows ?? []) {
+    const lista = webinarPerModulo.get(w.modulo_id) ?? [];
+    lista.push({ id: w.id, titolo: w.titolo, inizio: w.inizio, fine: w.fine });
+    webinarPerModulo.set(w.modulo_id, lista);
+  }
+
   const moduliIdsPerPacchetto = new Map<string, string[]>();
   for (const riga of pacchettoModuli ?? []) {
     const lista = moduliIdsPerPacchetto.get(riga.pacchetto_id) ?? [];
@@ -85,7 +102,7 @@ export default async function DettaglioCorsoPage({
         <h2 className="text-lg font-semibold text-foreground">Moduli</h2>
         <div className="space-y-2">
           {(moduli ?? []).map((modulo) => (
-            <ModuloRiga key={modulo.id} modulo={modulo} />
+            <ModuloRiga key={modulo.id} modulo={modulo} webinar={webinarPerModulo.get(modulo.id) ?? []} />
           ))}
         </div>
         <ModuloForm corsoId={corsoId} />

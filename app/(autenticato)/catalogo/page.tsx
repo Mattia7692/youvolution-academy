@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import {
   Card,
+  CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
@@ -149,7 +150,7 @@ export default async function CatalogoPage() {
             return (
               <Card
                 key={corso.id}
-                className={`relative overflow-hidden ${
+                className={`relative overflow-hidden h-full ${
                   inSospeso ? "border-orange-300 bg-orange-50 dark:bg-orange-950/20" : ""
                 }`}
               >
@@ -168,24 +169,31 @@ export default async function CatalogoPage() {
                   </div>
                 )}
                 <CardHeader>
-                  <CardTitle>{corso.titolo}</CardTitle>
-                  {corso.descrizione && (
-                    <CardDescription>{corso.descrizione}</CardDescription>
-                  )}
+                  <CardTitle className="min-h-[3.5rem] text-lg leading-tight line-clamp-2">
+                    {corso.titolo}
+                  </CardTitle>
+                  <CardDescription className="min-h-[4.5rem] line-clamp-3">
+                    {corso.descrizione}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col gap-2">
                   {corso.calendario && (
-                    <p className="text-sm text-muted-foreground mt-1">📅 {corso.calendario}</p>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Informazioni pratiche</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">{corso.calendario}</p>
+                    </div>
                   )}
                   {earlyBirdAttivoPerCorso.get(corso.id) && (
-                    <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 mt-1">
+                    <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
                       Sconto early bird attivo
                     </span>
                   )}
                   {inSospeso && (
-                    <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mt-1">
+                    <p className="text-xs font-medium text-orange-700 dark:text-orange-400">
                       Iscrizione in corso — completa il pagamento
                     </p>
                   )}
-                </CardHeader>
+                </CardContent>
                 <CardFooter>
                   {soldOut ? (
                     <Button className="w-full" variant="outline" disabled>

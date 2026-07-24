@@ -13,6 +13,8 @@ import {
   ALIQUOTA_IVA,
   EARLY_BIRD_PERCENTUALE,
   formattaData,
+  formattaDataOra,
+  formattaOra,
   formattaPrezzo,
   scadenzaEarlyBird,
   scomponiPrezzo,
@@ -27,6 +29,13 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
+export type WebinarModuloDisponibile = {
+  id: string;
+  titolo: string;
+  inizio: string;
+  fine: string;
+};
+
 export type ModuloDisponibile = {
   id: string;
   titolo: string;
@@ -34,6 +43,7 @@ export type ModuloDisponibile = {
   imponibile: number;
   scadenza_iscrizione: string;
   data_inizio: string;
+  webinar: WebinarModuloDisponibile[];
 };
 
 export type PacchettoDisponibile = {
@@ -274,6 +284,16 @@ export function Passo1Form({
                         Inizia il {formattaData(modulo.data_inizio)} · iscrizioni entro il{" "}
                         {formattaData(modulo.scadenza_iscrizione)}
                       </p>
+                      {modulo.webinar.length > 0 && (
+                        <div className="mt-1 space-y-0.5">
+                          {modulo.webinar.map((w) => (
+                            <p key={w.id} className="text-xs text-muted-foreground">
+                              <span className="font-semibold text-foreground">{w.titolo}</span>{" "}
+                              — {formattaDataOra(w.inizio)}–{formattaOra(w.fine)}
+                            </p>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </label>
                 );

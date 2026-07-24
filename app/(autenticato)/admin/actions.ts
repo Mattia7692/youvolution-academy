@@ -427,6 +427,73 @@ export async function eliminaModulo(moduloId: string) {
   return { ok: true as const };
 }
 
+// ─── Webinar di completamento modulo ───────────────────────────────────
+
+export type DatiWebinar = {
+  titolo: string;
+  inizio: string; // ISO datetime, es. da <input type="datetime-local">
+  fine: string; // ISO datetime
+};
+
+function validaWebinar(dati: DatiWebinar): string | null {
+  if (!dati.titolo.trim()) return "Il titolo del webinar è obbligatorio.";
+  if (!dati.inizio || !dati.fine) return "Data/ora di inizio e fine sono obbligatorie.";
+  if (dati.fine <= dati.inizio) return "L'orario di fine deve essere successivo a quello di inizio.";
+  return null;
+}
+
+export async function creaWebinar(moduloId: string, dati: DatiWebinar) {
+  const supabase = await createClient();
+  const admin = await richiediAdmin(supabase);
+  if (!admin) return { ok: false as const, error: "Non autorizzato." };
+
+  const errore = validaWebinar(dati);
+  if (errore) return { ok: false as const, error: errore };
+
+  const { error } = await supabase.from("webinar_modulo").insert({
+    modulo_id: moduloId,
+    titolo: dati.titolo.trim(),
+    inizio: dati.inizio,
+    fine: dati.fine,
+  });
+
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/admin/corsi", "layout");
+  return { ok: true as const };
+}
+
+export async function aggiornaWebinar(webinarId: string, patch: Partial<DatiWebinar>) {
+  const supabase = await createClient();
+  const admin = await richiediAdmin(supabase);
+  if (!admin) return { ok: false as const, error: "Non autorizzato." };
+
+  const aggiornamento: Record<string, unknown> = {};
+  if (patch.titolo !== undefined) aggiornamento.titolo = patch.titolo.trim();
+  if (patch.inizio !== undefined) aggiornamento.inizio = patch.inizio;
+  if (patch.fine !== undefined) aggiornamento.fine = patch.fine;
+
+  const { error } = await supabase.from("webinar_modulo").update(aggiornamento).eq("id", webinarId);
+
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/admin/corsi", "layout");
+  return { ok: true as const };
+}
+
+export async function eliminaWebinar(webinarId: string) {
+  const supabase = await createClient();
+  const admin = await richiediAdmin(supabase);
+  if (!admin) return { ok: false as const, error: "Non autorizzato." };
+
+  const { error } = await supabase.from("webinar_modulo").delete().eq("id", webinarId);
+
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/admin/corsi", "layout");
+  return { ok: true as const };
+}
+
 // ─── Pacchetti ──────────────────────────────────────────────────────────
 
 export type DatiPacchetto = {
