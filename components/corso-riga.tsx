@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { formattaPrezzo } from "@/lib/prezzo";
+import { METODI_PAGAMENTO, type MetodoPagamento } from "@/lib/pagamento";
 import type { ModuloCorso } from "@/components/modulo-riga";
 import type { PacchettoCorso } from "@/components/pacchetto-riga";
 
@@ -17,6 +20,7 @@ export type Corso = {
   titolo: string;
   descrizione: string | null;
   calendario: string | null;
+  metodo_pagamento: MetodoPagamento;
   attivo: boolean;
 };
 
@@ -50,6 +54,7 @@ export function CorsoRiga({
   const [titolo, setTitolo] = useState(corso.titolo);
   const [descrizione, setDescrizione] = useState(corso.descrizione ?? "");
   const [calendario, setCalendario] = useState(corso.calendario ?? "");
+  const [metodoPagamento, setMetodoPagamento] = useState<MetodoPagamento>(corso.metodo_pagamento);
   const [confermaEliminazione, setConfermaEliminazione] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -74,7 +79,12 @@ export function CorsoRiga({
   const handleSalva = async () => {
     setError(null);
     setIsLoading(true);
-    const risultato = await aggiornaCorso(corso.id, { titolo, descrizione, calendario });
+    const risultato = await aggiornaCorso(corso.id, {
+      titolo,
+      descrizione,
+      calendario,
+      metodo_pagamento: metodoPagamento,
+    });
     setIsLoading(false);
     if (!risultato.ok) {
       setError(risultato.error);
@@ -110,6 +120,27 @@ export function CorsoRiga({
           onChange={(e) => setCalendario(e.target.value)}
           placeholder="Calendario / date (facoltativo)"
         />
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs text-muted-foreground">Metodo di pagamento</Label>
+          <RadioGroup
+            value={metodoPagamento}
+            onValueChange={(v) => setMetodoPagamento(v as MetodoPagamento)}
+            className="flex flex-wrap gap-6"
+          >
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="allianz" id={`pagamento-allianz-${corso.id}`} />
+              <Label htmlFor={`pagamento-allianz-${corso.id}`} className="font-normal">
+                Allianz Bank
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="fineco" id={`pagamento-fineco-${corso.id}`} />
+              <Label htmlFor={`pagamento-fineco-${corso.id}`} className="font-normal">
+                Fineco Bank
+              </Label>
+            </div>
+          </RadioGroup>
+        </div>
         {error && (
           <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
             {error}
@@ -150,7 +181,8 @@ export function CorsoRiga({
           </p>
         )}
         <p className="text-sm text-muted-foreground mt-1">
-          {riepilogoPrezzo(moduli, pacchetti)} · {iscritti} iscritti verificati
+          {riepilogoPrezzo(moduli, pacchetti)} · {iscritti} iscritti verificati · bonifico su{" "}
+          {METODI_PAGAMENTO[corso.metodo_pagamento].etichetta}
         </p>
       </div>
       <div className="flex gap-2">

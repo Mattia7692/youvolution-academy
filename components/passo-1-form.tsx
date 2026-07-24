@@ -134,6 +134,23 @@ export function Passo1Form({
     if (pacchettoId) setModuloIdsSelezionati([]);
   };
 
+  // Se i moduli selezionati a mano coincidono esattamente con quelli di un
+  // pacchetto esistente, il corsista probabilmente non si e' accorto che il
+  // pacchetto esiste: lo avvisiamo invece di lasciarlo pagare di piu'.
+  const pacchettoConsigliato = useMemo(() => {
+    if (pacchettoSelezionato || moduloIdsSelezionati.length === 0) return null;
+    const selezionati = [...moduloIdsSelezionati].sort().join(",");
+    return (
+      pacchetti.find((p) => p.moduloIds.length > 0 && [...p.moduloIds].sort().join(",") === selezionati) ?? null
+    );
+  }, [pacchettoSelezionato, moduloIdsSelezionati, pacchetti]);
+
+  const risparmioPacchetto = pacchettoConsigliato
+    ? moduli
+        .filter((m) => moduloIdsSelezionati.includes(m.id))
+        .reduce((somma, m) => somma + m.imponibile, 0) - pacchettoConsigliato.imponibile
+    : 0;
+
   const righeSelezionate = useMemo(() => {
     if (pacchettoSelezionato) {
       const pacchetto = pacchetti.find((p) => p.id === pacchettoSelezionato);
@@ -262,6 +279,24 @@ export function Passo1Form({
                 );
               })}
             </div>
+
+            {pacchettoConsigliato && risparmioPacchetto > 0 && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  Hai selezionato tutti i moduli del pacchetto &quot;{pacchettoConsigliato.titolo}&quot;: passando
+                  al pacchetto risparmi {formattaPrezzo(risparmioPacchetto)}.
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="border-amber-300 text-amber-800 hover:bg-amber-100"
+                  onClick={() => selezionaPacchetto(pacchettoConsigliato.id)}
+                >
+                  Usa il pacchetto
+                </Button>
+              </div>
+            )}
 
             {pacchetti.map((pacchetto) => (
               <label

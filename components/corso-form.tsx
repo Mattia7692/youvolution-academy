@@ -8,11 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export function CorsoForm() {
   const [titolo, setTitolo] = useState("");
   const [descrizione, setDescrizione] = useState("");
   const [calendario, setCalendario] = useState("");
+  const [metodoPagamento, setMetodoPagamento] = useState<"allianz" | "fineco">("allianz");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -22,7 +24,7 @@ export function CorsoForm() {
     setError(null);
     setIsLoading(true);
 
-    const risultato = await creaCorso({ titolo, descrizione, calendario });
+    const risultato = await creaCorso({ titolo, descrizione, calendario, metodo_pagamento: metodoPagamento });
 
     setIsLoading(false);
 
@@ -57,6 +59,27 @@ export function CorsoForm() {
               value={calendario}
               onChange={(e) => setCalendario(e.target.value)}
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label>Metodo di pagamento</Label>
+            <RadioGroup
+              value={metodoPagamento}
+              onValueChange={(v) => setMetodoPagamento(v as "allianz" | "fineco")}
+              className="flex flex-wrap gap-6"
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="allianz" id="pagamento-allianz" />
+                <Label htmlFor="pagamento-allianz" className="font-normal">Allianz Bank</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="fineco" id="pagamento-fineco" />
+                <Label htmlFor="pagamento-fineco" className="font-normal">Fineco Bank</Label>
+              </div>
+            </RadioGroup>
+            <p className="text-xs text-muted-foreground">
+              Determina quali coordinate bancarie vede il corsista al passo 2 dell&apos;iscrizione.
+            </p>
           </div>
 
           <p className="text-xs text-muted-foreground -mt-1">

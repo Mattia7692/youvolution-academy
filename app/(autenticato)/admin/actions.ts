@@ -33,6 +33,7 @@ export type DatiCorso = {
   titolo: string;
   descrizione: string;
   calendario: string;
+  metodo_pagamento: "allianz" | "fineco";
   attivo: boolean;
 };
 
@@ -65,7 +66,9 @@ function validaModulo(dati: DatiModulo): string | null {
 // disattivato, perche' senza almeno un modulo non c'e' nulla da acquistare —
 // i moduli (anche un unico modulo, per un corso "semplice") si aggiungono
 // dopo dal dettaglio del corso.
-export async function creaCorso(datiCorso: Pick<DatiCorso, "titolo" | "descrizione" | "calendario">) {
+export async function creaCorso(
+  datiCorso: Pick<DatiCorso, "titolo" | "descrizione" | "calendario" | "metodo_pagamento">,
+) {
   const supabase = await createClient();
   const admin = await richiediAdmin(supabase);
   if (!admin) return { ok: false as const, error: "Non autorizzato." };
@@ -79,6 +82,7 @@ export async function creaCorso(datiCorso: Pick<DatiCorso, "titolo" | "descrizio
       titolo,
       descrizione: datiCorso.descrizione.trim() || null,
       calendario: datiCorso.calendario.trim() || null,
+      metodo_pagamento: datiCorso.metodo_pagamento,
       attivo: false,
     })
     .select("id")
@@ -126,6 +130,7 @@ export async function aggiornaCorso(corsoId: string, patch: Partial<DatiCorso>) 
   if (patch.titolo !== undefined) aggiornamento.titolo = patch.titolo.trim();
   if (patch.descrizione !== undefined) aggiornamento.descrizione = patch.descrizione.trim() || null;
   if (patch.calendario !== undefined) aggiornamento.calendario = patch.calendario.trim() || null;
+  if (patch.metodo_pagamento !== undefined) aggiornamento.metodo_pagamento = patch.metodo_pagamento;
   if (patch.attivo !== undefined) aggiornamento.attivo = patch.attivo;
 
   const { error } = await supabase.from("corsi").update(aggiornamento).eq("id", corsoId);

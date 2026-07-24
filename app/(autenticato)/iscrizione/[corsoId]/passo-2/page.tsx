@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Passo2Form } from "@/components/passo-2-form";
 import { formattaPrezzo } from "@/lib/prezzo";
+import { METODI_PAGAMENTO, type MetodoPagamento } from "@/lib/pagamento";
 
 export default async function Passo2Page({
   params,
@@ -18,7 +19,7 @@ export default async function Passo2Page({
 
   const { data: iscrizione } = await supabase
     .from("iscrizioni")
-    .select("id, totale_snapshot, corsi(titolo)")
+    .select("id, totale_snapshot, corsi(titolo, metodo_pagamento)")
     .eq("corsista_id", user.id)
     .eq("corso_id", corsoId)
     .eq("stato", "in_attesa_pagamento")
@@ -31,6 +32,8 @@ export default async function Passo2Page({
   }
 
   const corso = Array.isArray(iscrizione.corsi) ? iscrizione.corsi[0] : iscrizione.corsi;
+  const coordinate =
+    METODI_PAGAMENTO[(corso?.metodo_pagamento as MetodoPagamento | undefined) ?? "allianz"];
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
@@ -56,9 +59,9 @@ export default async function Passo2Page({
 
       <div className="rounded-xl border border-border bg-muted/50 p-5 text-sm text-muted-foreground space-y-1">
         <p className="font-medium text-foreground">Coordinate bonifico</p>
-        <p>Beneficiario: YOUVOLUTION SRL SOCIETA&apos; BENEFIT</p>
-        <p>Banca: Allianz Bank</p>
-        <p>IBAN: IT84 L035 8901 6000 1057 0950 025</p>
+        <p>Beneficiario: {coordinate.beneficiario}</p>
+        <p>Banca: {coordinate.banca}</p>
+        <p>IBAN: {coordinate.iban}</p>
         <p>Causale: iscrizione {corso?.titolo} — {user.email}</p>
         <p>
           Effettua il bonifico per l&apos;importo indicato sopra, poi inserisci qui
