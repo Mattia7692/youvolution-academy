@@ -44,7 +44,7 @@ export type ModuloDisponibile = {
   scadenza_iscrizione: string;
   data_inizio: string;
   webinar: WebinarModuloDisponibile[];
-  attivo: boolean;
+  acquistabile: boolean;
 };
 
 export type PacchettoDisponibile = {
@@ -258,7 +258,7 @@ export function Passo1Form({
 
             <div className="flex flex-col gap-2">
               {moduli.map((modulo) => {
-                if (!modulo.attivo) {
+                if (!modulo.acquistabile) {
                   return (
                     <div
                       key={modulo.id}

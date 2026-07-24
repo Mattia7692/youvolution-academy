@@ -47,6 +47,7 @@ export type DatiModulo = {
   data_inizio: string; // yyyy-mm-dd
   posti_disponibili: number | null;
   iscrizioni_chiuse: boolean;
+  acquistabile: boolean;
 };
 
 function validaModulo(dati: DatiModulo): string | null {
@@ -372,6 +373,7 @@ export async function creaModulo(corsoId: string, dati: DatiModulo) {
     data_inizio: dati.data_inizio,
     posti_disponibili: dati.posti_disponibili,
     iscrizioni_chiuse: dati.iscrizioni_chiuse,
+    acquistabile: dati.acquistabile,
   });
 
   if (error) return { ok: false as const, error: error.message };
@@ -394,6 +396,7 @@ export async function aggiornaModulo(moduloId: string, patch: Partial<DatiModulo
   if (patch.data_inizio !== undefined) aggiornamento.data_inizio = patch.data_inizio;
   if (patch.posti_disponibili !== undefined) aggiornamento.posti_disponibili = patch.posti_disponibili;
   if (patch.iscrizioni_chiuse !== undefined) aggiornamento.iscrizioni_chiuse = patch.iscrizioni_chiuse;
+  if (patch.acquistabile !== undefined) aggiornamento.acquistabile = patch.acquistabile;
   if (patch.attivo !== undefined) aggiornamento.attivo = patch.attivo;
 
   const { error } = await supabase.from("moduli_corso").update(aggiornamento).eq("id", moduloId);

@@ -53,8 +53,9 @@ export default async function Passo1Page({
   const [{ data: moduli }, { data: pacchetti }, { data: pacchettoModuli }] = await Promise.all([
     supabase
       .from("moduli_corso")
-      .select("id, titolo, descrizione, imponibile, scadenza_iscrizione, data_inizio, attivo")
+      .select("id, titolo, descrizione, imponibile, scadenza_iscrizione, data_inizio, acquistabile")
       .eq("corso_id", corsoId)
+      .eq("attivo", true)
       .order("ordine", { ascending: true }),
     supabase
       .from("pacchetti_corso")

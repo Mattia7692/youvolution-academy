@@ -21,7 +21,7 @@ export default async function CatalogoPage() {
       .order("created_at", { ascending: true }),
     supabase
       .from("moduli_corso")
-      .select("id, corso_id, data_inizio, scadenza_iscrizione, posti_disponibili")
+      .select("id, corso_id, data_inizio, scadenza_iscrizione, posti_disponibili, acquistabile")
       .eq("attivo", true),
     supabase
       .from("pacchetti_corso")
@@ -44,11 +44,15 @@ export default async function CatalogoPage() {
   }
 
   // Sold out automatico: un corso e' pieno quando TUTTE le sue opzioni
-  // attive (moduli + pacchetti) hanno un limite di posti impostato e
-  // l'hanno raggiunto. Basta un'opzione senza limite (posti illimitati) per
-  // escludere il corso da questo calcolo.
+  // acquistabili (moduli acquistabili singolarmente + pacchetti) hanno un
+  // limite di posti impostato e l'hanno raggiunto. Basta un'opzione senza
+  // limite (posti illimitati) per escludere il corso da questo calcolo. I
+  // moduli non acquistabili singolarmente (disponibili solo via pacchetto)
+  // non contano come opzione a se'.
+  const moduliAcquistabili = (moduli ?? []).filter((m) => m.acquistabile);
+
   const totaleOpzioniPerCorso = new Map<string, number>();
-  for (const m of moduli ?? []) {
+  for (const m of moduliAcquistabili) {
     totaleOpzioniPerCorso.set(m.corso_id, (totaleOpzioniPerCorso.get(m.corso_id) ?? 0) + 1);
   }
   for (const p of pacchetti ?? []) {
@@ -56,7 +60,7 @@ export default async function CatalogoPage() {
   }
 
   const opzioniConLimite = [
-    ...(moduli ?? [])
+    ...moduliAcquistabili
       .filter((m) => m.posti_disponibili !== null)
       .map((m) => ({ corsoId: m.corso_id, tipo: "modulo" as const, id: m.id, posti: m.posti_disponibili! })),
     ...(pacchetti ?? [])
@@ -89,7 +93,7 @@ export default async function CatalogoPage() {
   // opzioni attive (moduli + pacchetti) hanno superato la propria scadenza
   // di iscrizione.
   const opzioniScadutePerCorso = new Map<string, number>();
-  for (const m of moduli ?? []) {
+  for (const m of moduliAcquistabili) {
     if (m.scadenza_iscrizione < oggi) {
       opzioniScadutePerCorso.set(m.corso_id, (opzioniScadutePerCorso.get(m.corso_id) ?? 0) + 1);
     }

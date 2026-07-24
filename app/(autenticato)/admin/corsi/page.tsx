@@ -22,7 +22,7 @@ export default async function GestioneCorsiPage() {
       supabase
         .from("moduli_corso")
         .select(
-          "id, corso_id, titolo, descrizione, imponibile, scadenza_iscrizione, data_inizio, posti_disponibili, iscrizioni_chiuse, attivo",
+          "id, corso_id, titolo, descrizione, imponibile, scadenza_iscrizione, data_inizio, posti_disponibili, iscrizioni_chiuse, acquistabile, attivo",
         ),
       supabase
         .from("pacchetti_corso")

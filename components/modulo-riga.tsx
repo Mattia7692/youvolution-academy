@@ -22,6 +22,7 @@ export type ModuloCorso = {
   data_inizio: string;
   posti_disponibili: number | null;
   iscrizioni_chiuse: boolean;
+  acquistabile: boolean;
   attivo: boolean;
 };
 
@@ -36,6 +37,7 @@ export function ModuloRiga({ modulo, webinar }: { modulo: ModuloCorso; webinar: 
     modulo.posti_disponibili === null ? "" : String(modulo.posti_disponibili),
   );
   const [iscrizioniChiuse, setIscrizioniChiuse] = useState(modulo.iscrizioni_chiuse);
+  const [acquistabile, setAcquistabile] = useState(modulo.acquistabile);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -51,6 +53,7 @@ export function ModuloRiga({ modulo, webinar }: { modulo: ModuloCorso; webinar: 
       data_inizio: dataInizio,
       posti_disponibili: postiDisponibili.trim() === "" ? null : Number(postiDisponibili),
       iscrizioni_chiuse: iscrizioniChiuse,
+      acquistabile,
     });
     setIsLoading(false);
     if (!risultato.ok) {
@@ -128,6 +131,10 @@ export function ModuloRiga({ modulo, webinar }: { modulo: ModuloCorso; webinar: 
           <Checkbox checked={iscrizioniChiuse} onCheckedChange={(v) => setIscrizioniChiuse(v === true)} />
           Chiudi iscrizioni a questo modulo
         </label>
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox checked={acquistabile} onCheckedChange={(v) => setAcquistabile(v === true)} />
+          Acquistabile singolarmente (disattiva se disponibile solo dentro un pacchetto)
+        </label>
         {error && (
           <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
             {error}
@@ -154,6 +161,7 @@ export function ModuloRiga({ modulo, webinar }: { modulo: ModuloCorso; webinar: 
             {modulo.attivo ? "Attivo" : "Disattivato"}
           </Badge>
           {modulo.iscrizioni_chiuse && <Badge variant="destructive">Iscrizioni chiuse</Badge>}
+          {!modulo.acquistabile && <Badge variant="secondary">Solo dentro un pacchetto</Badge>}
         </div>
         {modulo.descrizione && (
           <p className="text-sm text-muted-foreground mt-1">{modulo.descrizione}</p>

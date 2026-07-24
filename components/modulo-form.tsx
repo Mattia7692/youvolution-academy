@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export function ModuloForm({ corsoId }: { corsoId: string }) {
   const [aperto, setAperto] = useState(false);
@@ -16,6 +17,7 @@ export function ModuloForm({ corsoId }: { corsoId: string }) {
   const [scadenzaIscrizione, setScadenzaIscrizione] = useState("");
   const [dataInizio, setDataInizio] = useState("");
   const [postiDisponibili, setPostiDisponibili] = useState("");
+  const [acquistabile, setAcquistabile] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -41,6 +43,7 @@ export function ModuloForm({ corsoId }: { corsoId: string }) {
       data_inizio: dataInizio,
       posti_disponibili: postiDisponibili.trim() === "" ? null : Number(postiDisponibili),
       iscrizioni_chiuse: false,
+      acquistabile,
     });
 
     setIsLoading(false);
@@ -57,6 +60,7 @@ export function ModuloForm({ corsoId }: { corsoId: string }) {
     setScadenzaIscrizione("");
     setDataInizio("");
     setPostiDisponibili("");
+    setAcquistabile(true);
     router.refresh();
   };
 
@@ -102,6 +106,10 @@ export function ModuloForm({ corsoId }: { corsoId: string }) {
           <Input type="date" required value={dataInizio} onChange={(e) => setDataInizio(e.target.value)} />
         </div>
       </div>
+      <label className="flex items-center gap-2 text-sm">
+        <Checkbox checked={acquistabile} onCheckedChange={(v) => setAcquistabile(v === true)} />
+        Acquistabile singolarmente (disattiva se disponibile solo dentro un pacchetto)
+      </label>
       {error && (
         <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
           {error}
