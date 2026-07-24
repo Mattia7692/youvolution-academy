@@ -22,6 +22,7 @@ export type Corso = {
   calendario: string | null;
   metodo_pagamento: MetodoPagamento;
   attivo: boolean;
+  sold_out_manuale: boolean;
 };
 
 function riepilogoPrezzo(moduli: ModuloCorso[], pacchetti: PacchettoCorso[]) {
@@ -106,6 +107,18 @@ export function CorsoRiga({
     router.refresh();
   };
 
+  const handleToggleSoldOut = async () => {
+    setError(null);
+    setIsLoading(true);
+    const risultato = await aggiornaCorso(corso.id, { sold_out_manuale: !corso.sold_out_manuale });
+    setIsLoading(false);
+    if (!risultato.ok) {
+      setError(risultato.error);
+      return;
+    }
+    router.refresh();
+  };
+
   if (inModifica) {
     return (
       <div className="rounded-xl border border-border bg-card p-5 space-y-3">
@@ -169,6 +182,7 @@ export function CorsoRiga({
             {corso.attivo ? "Attivo" : "Disattivato"}
           </Badge>
           {nienteAcquistabile && <Badge variant="destructive">Da configurare</Badge>}
+          {corso.sold_out_manuale && <Badge variant="destructive">Sold out (manuale)</Badge>}
         </div>
         {corso.descrizione && (
           <p className="text-sm text-muted-foreground mt-1 line-clamp-2 max-w-2xl">
@@ -194,6 +208,9 @@ export function CorsoRiga({
         </Button>
         <Button size="sm" variant="outline" onClick={handleToggleAttivo} disabled={isLoading}>
           {corso.attivo ? "Disattiva" : "Attiva"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={handleToggleSoldOut} disabled={isLoading}>
+          {corso.sold_out_manuale ? "Rimuovi sold out" : "Segna sold out"}
         </Button>
         {confermaEliminazione ? (
           <>

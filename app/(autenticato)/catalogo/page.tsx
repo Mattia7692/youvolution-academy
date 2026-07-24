@@ -12,13 +12,14 @@ import { scadenzaEarlyBird } from "@/lib/prezzo";
 
 export default async function CatalogoPage() {
   const supabase = await createClient();
-  const [{ data: corsi }, { data: moduli }] = await Promise.all([
+  const [{ data: corsi }, { data: moduli }, { data: pacchetti }] = await Promise.all([
     supabase
       .from("corsi")
-      .select("id, titolo, descrizione, calendario")
+      .select("id, titolo, descrizione, calendario, sold_out_manuale")
       .eq("attivo", true)
       .order("created_at", { ascending: true }),
-    supabase.from("moduli_corso").select("corso_id, data_inizio").eq("attivo", true),
+    supabase.from("moduli_corso").select("id, corso_id, data_inizio, posti_disponibili").eq("attivo", true),
+    supabase.from("pacchetti_corso").select("id, corso_id, posti_disponibili").eq("attivo", true),
   ]);
 
   const dateInizioPerCorso = new Map<string, string[]>();
@@ -33,6 +34,48 @@ export default async function CatalogoPage() {
   for (const [corsoId, date] of dateInizioPerCorso) {
     const cutoff = scadenzaEarlyBird(date);
     earlyBirdAttivoPerCorso.set(corsoId, !!cutoff && oggi <= cutoff);
+  }
+
+  // Sold out automatico: un corso e' pieno quando TUTTE le sue opzioni
+  // attive (moduli + pacchetti) hanno un limite di posti impostato e
+  // l'hanno raggiunto. Basta un'opzione senza limite (posti illimitati) per
+  // escludere il corso da questo calcolo.
+  const totaleOpzioniPerCorso = new Map<string, number>();
+  for (const m of moduli ?? []) {
+    totaleOpzioniPerCorso.set(m.corso_id, (totaleOpzioniPerCorso.get(m.corso_id) ?? 0) + 1);
+  }
+  for (const p of pacchetti ?? []) {
+    totaleOpzioniPerCorso.set(p.corso_id, (totaleOpzioniPerCorso.get(p.corso_id) ?? 0) + 1);
+  }
+
+  const opzioniConLimite = [
+    ...(moduli ?? [])
+      .filter((m) => m.posti_disponibili !== null)
+      .map((m) => ({ corsoId: m.corso_id, tipo: "modulo" as const, id: m.id, posti: m.posti_disponibili! })),
+    ...(pacchetti ?? [])
+      .filter((p) => p.posti_disponibili !== null)
+      .map((p) => ({ corsoId: p.corso_id, tipo: "pacchetto" as const, id: p.id, posti: p.posti_disponibili! })),
+  ];
+
+  const occupazioni = await Promise.all(
+    opzioniConLimite.map((o) =>
+      o.tipo === "modulo"
+        ? supabase.rpc("posti_occupati_modulo", { p_modulo_id: o.id })
+        : supabase.rpc("posti_occupati_pacchetto", { p_pacchetto_id: o.id }),
+    ),
+  );
+
+  const opzioniPienePerCorso = new Map<string, number>();
+  opzioniConLimite.forEach((o, i) => {
+    const occupati = occupazioni[i].data ?? 0;
+    if (occupati >= o.posti) {
+      opzioniPienePerCorso.set(o.corsoId, (opzioniPienePerCorso.get(o.corsoId) ?? 0) + 1);
+    }
+  });
+
+  const soldOutAutomaticoPerCorso = new Map<string, boolean>();
+  for (const [corsoId, totale] of totaleOpzioniPerCorso) {
+    soldOutAutomaticoPerCorso.set(corsoId, totale > 0 && (opzioniPienePerCorso.get(corsoId) ?? 0) === totale);
   }
 
   // Corsi per cui l'utente ha già riservato il posto (passo 1 completato) ma
@@ -67,14 +110,23 @@ export default async function CatalogoPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           {corsi.map((corso) => {
             const inSospeso = corsiInSospeso.has(corso.id);
+            const soldOut =
+              !inSospeso && (corso.sold_out_manuale || !!soldOutAutomaticoPerCorso.get(corso.id));
 
             return (
               <Card
                 key={corso.id}
-                className={
-                  inSospeso ? "border-orange-300 bg-orange-50 dark:bg-orange-950/20" : undefined
-                }
+                className={`relative overflow-hidden ${
+                  inSospeso ? "border-orange-300 bg-orange-50 dark:bg-orange-950/20" : ""
+                }`}
               >
+                {soldOut && (
+                  <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+                    <span className="-rotate-12 rounded-md border-4 border-red-600/80 bg-background/60 px-6 py-1.5 text-2xl font-black uppercase tracking-widest text-red-600/80">
+                      Sold out
+                    </span>
+                  </div>
+                )}
                 <CardHeader>
                   <CardTitle>{corso.titolo}</CardTitle>
                   {corso.descrizione && (
@@ -95,14 +147,20 @@ export default async function CatalogoPage() {
                   )}
                 </CardHeader>
                 <CardFooter>
-                  <Button
-                    asChild
-                    className={inSospeso ? "w-full bg-orange-600 hover:bg-orange-700" : "w-full"}
-                  >
-                    <Link href={`/iscrizione/${corso.id}/${inSospeso ? "passo-2" : "passo-1"}`}>
-                      {inSospeso ? "Continua iscrizione" : "Iscriviti"}
-                    </Link>
-                  </Button>
+                  {soldOut ? (
+                    <Button className="w-full" variant="outline" disabled>
+                      Sold out
+                    </Button>
+                  ) : (
+                    <Button
+                      asChild
+                      className={inSospeso ? "w-full bg-orange-600 hover:bg-orange-700" : "w-full"}
+                    >
+                      <Link href={`/iscrizione/${corso.id}/${inSospeso ? "passo-2" : "passo-1"}`}>
+                        {inSospeso ? "Continua iscrizione" : "Iscriviti"}
+                      </Link>
+                    </Button>
+                  )}
                 </CardFooter>
               </Card>
             );

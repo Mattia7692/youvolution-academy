@@ -35,6 +35,7 @@ export type DatiCorso = {
   calendario: string;
   metodo_pagamento: "allianz" | "fineco";
   attivo: boolean;
+  sold_out_manuale: boolean;
 };
 
 export type DatiModulo = {
@@ -132,6 +133,7 @@ export async function aggiornaCorso(corsoId: string, patch: Partial<DatiCorso>) 
   if (patch.calendario !== undefined) aggiornamento.calendario = patch.calendario.trim() || null;
   if (patch.metodo_pagamento !== undefined) aggiornamento.metodo_pagamento = patch.metodo_pagamento;
   if (patch.attivo !== undefined) aggiornamento.attivo = patch.attivo;
+  if (patch.sold_out_manuale !== undefined) aggiornamento.sold_out_manuale = patch.sold_out_manuale;
 
   const { error } = await supabase.from("corsi").update(aggiornamento).eq("id", corsoId);
 
