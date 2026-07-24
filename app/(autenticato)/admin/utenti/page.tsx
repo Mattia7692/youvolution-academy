@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { richiediAdmin, normalizzaRuolo } from "@/lib/roles";
-import { UtenteRiga } from "@/components/utente-riga";
+import { UtentiLista } from "@/components/utenti-lista";
 
 export default async function GestioneUtentiPage() {
   const supabase = await createClient();
@@ -26,21 +26,16 @@ export default async function GestioneUtentiPage() {
       {!profili || profili.length === 0 ? (
         <p className="text-muted-foreground">Nessun utente registrato ancora.</p>
       ) : (
-        <div className="space-y-2">
-          {profili.map((profilo) => (
-            <UtenteRiga
-              key={profilo.id}
-              utente={{
-                id: profilo.id,
-                nome: profilo.nome,
-                cognome: profilo.cognome,
-                email: profilo.email,
-                ruolo: normalizzaRuolo(profilo.ruolo),
-              }}
-              isSelf={profilo.id === admin.id}
-            />
-          ))}
-        </div>
+        <UtentiLista
+          adminId={admin.id}
+          utenti={profili.map((profilo) => ({
+            id: profilo.id,
+            nome: profilo.nome,
+            cognome: profilo.cognome,
+            email: profilo.email,
+            ruolo: normalizzaRuolo(profilo.ruolo),
+          }))}
+        />
       )}
     </div>
   );
