@@ -268,8 +268,8 @@ export function Passo1Form({
                 key={pacchetto.id}
                 className={`flex items-start gap-3 rounded-lg border-2 border-dashed p-3 cursor-pointer transition-colors ${
                   pacchettoSelezionato === pacchetto.id
-                    ? "border-primary bg-primary/5"
-                    : "border-primary/40"
+                    ? "border-primary bg-primary/10"
+                    : "border-primary/40 bg-primary/5"
                 }`}
               >
                 <Checkbox
@@ -291,6 +291,49 @@ export function Passo1Form({
             ))}
           </div>
         )}
+
+        <div className="rounded-xl bg-card border border-border shadow-xl p-6 flex flex-col gap-3">
+          <div>
+            <h2 className="font-medium text-foreground">Codice sconto</h2>
+            <p className="text-sm text-muted-foreground">
+              Se hai ricevuto un codice promozionale, inseriscilo qui. Non cumulabile con l&apos;early bird.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={codiceSconto}
+              onChange={(e) => {
+                setCodiceSconto(e.target.value);
+                setCodiceStato(null);
+              }}
+              placeholder="Es. FUTURE15"
+            />
+            <Button type="button" variant="outline" onClick={handleVerificaCodice} disabled={verificandoCodice}>
+              {verificandoCodice ? "Verifica…" : "Applica"}
+            </Button>
+          </div>
+          {codiceStato?.tipo === "ok" && (
+            <p className="text-sm text-emerald-700">
+              ✓ Codice valido — sconto del {codiceStato.percentuale}% applicato
+            </p>
+          )}
+          {codiceStato?.tipo === "errore" && (
+            <p className="text-sm text-destructive">✕ Codice non valido o scaduto</p>
+          )}
+          {!codiceStato && earlyBirdAttivo && (
+            <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+              Sconto early bird attivo fino al {formattaData(cutoffEarlyBird!)}
+            </span>
+          )}
+          {!codiceStato && !earlyBirdAttivo && cutoffEarlyBird && (
+            <p className="text-xs text-muted-foreground">
+              Early bird scaduto il {formattaData(cutoffEarlyBird)}.
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Gli sconti non sono cumulabili: si applica sempre e solo uno tra codice ed early bird.
+          </p>
+        </div>
 
         <div className="rounded-xl bg-card border border-border shadow-xl p-6 flex flex-col gap-5">
           <div>
@@ -438,49 +481,6 @@ export function Passo1Form({
               </div>
             </div>
           )}
-        </div>
-
-        <div className="rounded-xl bg-card border border-border shadow-xl p-6 flex flex-col gap-3">
-          <div>
-            <h2 className="font-medium text-foreground">Codice sconto</h2>
-            <p className="text-sm text-muted-foreground">
-              Se hai ricevuto un codice promozionale, inseriscilo qui. Non cumulabile con l&apos;early bird.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Input
-              value={codiceSconto}
-              onChange={(e) => {
-                setCodiceSconto(e.target.value);
-                setCodiceStato(null);
-              }}
-              placeholder="Es. FUTURE15"
-            />
-            <Button type="button" variant="outline" onClick={handleVerificaCodice} disabled={verificandoCodice}>
-              {verificandoCodice ? "Verifica…" : "Applica"}
-            </Button>
-          </div>
-          {codiceStato?.tipo === "ok" && (
-            <p className="text-sm text-emerald-700">
-              ✓ Codice valido — sconto del {codiceStato.percentuale}% applicato
-            </p>
-          )}
-          {codiceStato?.tipo === "errore" && (
-            <p className="text-sm text-destructive">✕ Codice non valido o scaduto</p>
-          )}
-          {!codiceStato && earlyBirdAttivo && (
-            <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-              Sconto early bird attivo fino al {formattaData(cutoffEarlyBird!)}
-            </span>
-          )}
-          {!codiceStato && !earlyBirdAttivo && cutoffEarlyBird && (
-            <p className="text-xs text-muted-foreground">
-              Early bird scaduto il {formattaData(cutoffEarlyBird)}.
-            </p>
-          )}
-          <p className="text-xs text-muted-foreground">
-            Gli sconti non sono cumulabili: si applica sempre e solo uno tra codice ed early bird.
-          </p>
         </div>
 
         <div className="rounded-xl bg-card border border-border shadow-xl p-6 flex flex-col gap-4">

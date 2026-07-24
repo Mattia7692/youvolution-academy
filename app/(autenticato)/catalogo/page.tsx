@@ -8,14 +8,32 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { scadenzaEarlyBird } from "@/lib/prezzo";
 
 export default async function CatalogoPage() {
   const supabase = await createClient();
-  const { data: corsi } = await supabase
-    .from("corsi")
-    .select("id, titolo, descrizione, calendario")
-    .eq("attivo", true)
-    .order("created_at", { ascending: true });
+  const [{ data: corsi }, { data: moduli }] = await Promise.all([
+    supabase
+      .from("corsi")
+      .select("id, titolo, descrizione, calendario")
+      .eq("attivo", true)
+      .order("created_at", { ascending: true }),
+    supabase.from("moduli_corso").select("corso_id, data_inizio").eq("attivo", true),
+  ]);
+
+  const dateInizioPerCorso = new Map<string, string[]>();
+  for (const m of moduli ?? []) {
+    const lista = dateInizioPerCorso.get(m.corso_id) ?? [];
+    lista.push(m.data_inizio);
+    dateInizioPerCorso.set(m.corso_id, lista);
+  }
+
+  const oggi = new Date().toISOString().slice(0, 10);
+  const earlyBirdAttivoPerCorso = new Map<string, boolean>();
+  for (const [corsoId, date] of dateInizioPerCorso) {
+    const cutoff = scadenzaEarlyBird(date);
+    earlyBirdAttivoPerCorso.set(corsoId, !!cutoff && oggi <= cutoff);
+  }
 
   // Corsi per cui l'utente ha già riservato il posto (passo 1 completato) ma
   // non ha ancora inserito il CRO: nel catalogo li segnaliamo per farlo
@@ -64,6 +82,11 @@ export default async function CatalogoPage() {
                   )}
                   {corso.calendario && (
                     <p className="text-sm text-muted-foreground mt-1">📅 {corso.calendario}</p>
+                  )}
+                  {earlyBirdAttivoPerCorso.get(corso.id) && (
+                    <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 mt-1">
+                      Sconto early bird attivo
+                    </span>
                   )}
                   {inSospeso && (
                     <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mt-1">
