@@ -15,11 +15,17 @@ export default async function CatalogoPage() {
   const [{ data: corsi }, { data: moduli }, { data: pacchetti }] = await Promise.all([
     supabase
       .from("corsi")
-      .select("id, titolo, descrizione, calendario, sold_out_manuale")
+      .select("id, titolo, descrizione, calendario, sold_out_manuale, iscrizioni_chiuse_manuale")
       .eq("attivo", true)
       .order("created_at", { ascending: true }),
-    supabase.from("moduli_corso").select("id, corso_id, data_inizio, posti_disponibili").eq("attivo", true),
-    supabase.from("pacchetti_corso").select("id, corso_id, posti_disponibili").eq("attivo", true),
+    supabase
+      .from("moduli_corso")
+      .select("id, corso_id, data_inizio, scadenza_iscrizione, posti_disponibili")
+      .eq("attivo", true),
+    supabase
+      .from("pacchetti_corso")
+      .select("id, corso_id, scadenza_iscrizione, posti_disponibili")
+      .eq("attivo", true),
   ]);
 
   const dateInizioPerCorso = new Map<string, string[]>();
@@ -78,6 +84,29 @@ export default async function CatalogoPage() {
     soldOutAutomaticoPerCorso.set(corsoId, totale > 0 && (opzioniPienePerCorso.get(corsoId) ?? 0) === totale);
   }
 
+  // Iscrizioni chiuse automatiche: un corso le ha chiuse quando TUTTE le sue
+  // opzioni attive (moduli + pacchetti) hanno superato la propria scadenza
+  // di iscrizione.
+  const opzioniScadutePerCorso = new Map<string, number>();
+  for (const m of moduli ?? []) {
+    if (m.scadenza_iscrizione < oggi) {
+      opzioniScadutePerCorso.set(m.corso_id, (opzioniScadutePerCorso.get(m.corso_id) ?? 0) + 1);
+    }
+  }
+  for (const p of pacchetti ?? []) {
+    if (p.scadenza_iscrizione < oggi) {
+      opzioniScadutePerCorso.set(p.corso_id, (opzioniScadutePerCorso.get(p.corso_id) ?? 0) + 1);
+    }
+  }
+
+  const iscrizioniChiuseAutomaticoPerCorso = new Map<string, boolean>();
+  for (const [corsoId, totale] of totaleOpzioniPerCorso) {
+    iscrizioniChiuseAutomaticoPerCorso.set(
+      corsoId,
+      totale > 0 && (opzioniScadutePerCorso.get(corsoId) ?? 0) === totale,
+    );
+  }
+
   // Corsi per cui l'utente ha già riservato il posto (passo 1 completato) ma
   // non ha ancora inserito il CRO: nel catalogo li segnaliamo per farlo
   // tornare a completare l'iscrizione invece di ripartire da zero.
@@ -112,6 +141,10 @@ export default async function CatalogoPage() {
             const inSospeso = corsiInSospeso.has(corso.id);
             const soldOut =
               !inSospeso && (corso.sold_out_manuale || !!soldOutAutomaticoPerCorso.get(corso.id));
+            const iscrizioniChiuse =
+              !inSospeso &&
+              !soldOut &&
+              (corso.iscrizioni_chiuse_manuale || !!iscrizioniChiuseAutomaticoPerCorso.get(corso.id));
 
             return (
               <Card
@@ -140,6 +173,11 @@ export default async function CatalogoPage() {
                       Sconto early bird attivo
                     </span>
                   )}
+                  {iscrizioniChiuse && (
+                    <span className="inline-flex w-fit items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 mt-1">
+                      Iscrizioni chiuse
+                    </span>
+                  )}
                   {inSospeso && (
                     <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mt-1">
                       Iscrizione in corso — completa il pagamento
@@ -150,6 +188,10 @@ export default async function CatalogoPage() {
                   {soldOut ? (
                     <Button className="w-full" variant="outline" disabled>
                       Sold out
+                    </Button>
+                  ) : iscrizioniChiuse ? (
+                    <Button className="w-full" variant="outline" disabled>
+                      Iscrizioni chiuse
                     </Button>
                   ) : (
                     <Button

@@ -36,6 +36,7 @@ export type DatiCorso = {
   metodo_pagamento: "allianz" | "fineco";
   attivo: boolean;
   sold_out_manuale: boolean;
+  iscrizioni_chiuse_manuale: boolean;
 };
 
 export type DatiModulo = {
@@ -134,12 +135,197 @@ export async function aggiornaCorso(corsoId: string, patch: Partial<DatiCorso>) 
   if (patch.metodo_pagamento !== undefined) aggiornamento.metodo_pagamento = patch.metodo_pagamento;
   if (patch.attivo !== undefined) aggiornamento.attivo = patch.attivo;
   if (patch.sold_out_manuale !== undefined) aggiornamento.sold_out_manuale = patch.sold_out_manuale;
+  if (patch.iscrizioni_chiuse_manuale !== undefined) {
+    aggiornamento.iscrizioni_chiuse_manuale = patch.iscrizioni_chiuse_manuale;
+  }
 
   const { error } = await supabase.from("corsi").update(aggiornamento).eq("id", corsoId);
 
   if (error) return { ok: false as const, error: error.message };
 
   revalidatePath("/admin/corsi");
+  revalidatePath("/catalogo");
+  return { ok: true as const };
+}
+
+// Clona corso + moduli + pacchetti (incluso il ponte pacchetto-moduli) cosi'
+// com'e', date comprese: il caso d'uso e' la nuova edizione di un corso
+// esistente, identica in tutto tranne le date, che l'admin sistema subito
+// dopo nella pagina dedicata invece di reinserire tutto da capo. Il nuovo
+// corso nasce sempre disattivato, come una creazione normale.
+export async function duplicaCorso(corsoId: string) {
+  const supabase = await createClient();
+  const admin = await richiediAdmin(supabase);
+  if (!admin) return { ok: false as const, error: "Non autorizzato." };
+
+  const { data: corso } = await supabase
+    .from("corsi")
+    .select("titolo, descrizione, calendario, metodo_pagamento")
+    .eq("id", corsoId)
+    .maybeSingle();
+
+  if (!corso) return { ok: false as const, error: "Corso non trovato." };
+
+  const [{ data: moduli }, { data: pacchetti }] = await Promise.all([
+    supabase
+      .from("moduli_corso")
+      .select(
+        "id, titolo, descrizione, ordine, imponibile, scadenza_iscrizione, data_inizio, posti_disponibili, attivo",
+      )
+      .eq("corso_id", corsoId)
+      .order("ordine", { ascending: true }),
+    supabase
+      .from("pacchetti_corso")
+      .select("id, titolo, imponibile, scadenza_iscrizione, posti_disponibili, attivo")
+      .eq("corso_id", corsoId),
+  ]);
+
+  const { data: nuovoCorso, error: corsoError } = await supabase
+    .from("corsi")
+    .insert({
+      titolo: corso.titolo,
+      descrizione: corso.descrizione,
+      calendario: corso.calendario,
+      metodo_pagamento: corso.metodo_pagamento,
+      attivo: false,
+    })
+    .select("id")
+    .single();
+
+  if (corsoError || !nuovoCorso) {
+    return { ok: false as const, error: corsoError?.message ?? "Errore nella duplicazione del corso." };
+  }
+
+  const mappaModuli = new Map<string, string>();
+
+  if (moduli && moduli.length > 0) {
+    const { data: nuoviModuli, error: moduliError } = await supabase
+      .from("moduli_corso")
+      .insert(
+        moduli.map((m) => ({
+          corso_id: nuovoCorso.id,
+          titolo: m.titolo,
+          descrizione: m.descrizione,
+          ordine: m.ordine,
+          imponibile: m.imponibile,
+          scadenza_iscrizione: m.scadenza_iscrizione,
+          data_inizio: m.data_inizio,
+          posti_disponibili: m.posti_disponibili,
+          iscrizioni_chiuse: false,
+          attivo: m.attivo,
+        })),
+      )
+      .select("id");
+
+    if (moduliError || !nuoviModuli) {
+      await supabase.from("corsi").delete().eq("id", nuovoCorso.id);
+      return { ok: false as const, error: moduliError?.message ?? "Errore nella duplicazione dei moduli." };
+    }
+    // L'insert multi-riga di Postgres restituisce le righe nello stesso
+    // ordine dei valori inviati: l'abbinamento per indice e' affidabile.
+    moduli.forEach((m, i) => mappaModuli.set(m.id, nuoviModuli[i].id));
+  }
+
+  if (pacchetti && pacchetti.length > 0) {
+    const { data: nuoviPacchetti, error: pacchettiError } = await supabase
+      .from("pacchetti_corso")
+      .insert(
+        pacchetti.map((p) => ({
+          corso_id: nuovoCorso.id,
+          titolo: p.titolo,
+          imponibile: p.imponibile,
+          scadenza_iscrizione: p.scadenza_iscrizione,
+          posti_disponibili: p.posti_disponibili,
+          iscrizioni_chiuse: false,
+          attivo: p.attivo,
+        })),
+      )
+      .select("id");
+
+    if (pacchettiError || !nuoviPacchetti) {
+      await supabase.from("corsi").delete().eq("id", nuovoCorso.id);
+      return { ok: false as const, error: pacchettiError?.message ?? "Errore nella duplicazione dei pacchetti." };
+    }
+
+    const mappaPacchetti = new Map<string, string>();
+    pacchetti.forEach((p, i) => mappaPacchetti.set(p.id, nuoviPacchetti[i].id));
+
+    const { data: vecchiPonti } = await supabase
+      .from("pacchetto_moduli")
+      .select("pacchetto_id, modulo_id")
+      .in(
+        "pacchetto_id",
+        pacchetti.map((p) => p.id),
+      );
+
+    const nuoviPonti = (vecchiPonti ?? [])
+      .map((ponte) => ({
+        pacchetto_id: mappaPacchetti.get(ponte.pacchetto_id),
+        modulo_id: mappaModuli.get(ponte.modulo_id),
+      }))
+      .filter((p): p is { pacchetto_id: string; modulo_id: string } => !!p.pacchetto_id && !!p.modulo_id);
+
+    if (nuoviPonti.length > 0) {
+      await supabase.from("pacchetto_moduli").insert(nuoviPonti);
+    }
+  }
+
+  revalidatePath("/admin/corsi");
+  return { ok: true as const, corsoId: nuovoCorso.id as string };
+}
+
+// Aggiornamento mirato delle sole date, per la pagina "nuova edizione": un
+// modulo/pacchetto alla volta sarebbe troppo lento per il caso d'uso (decine
+// di date da sistemare in un colpo solo dopo una duplicazione).
+export async function aggiornaDateNuovaEdizione(
+  corsoId: string,
+  dati: {
+    calendario: string;
+    moduli: { id: string; scadenza_iscrizione: string; data_inizio: string }[];
+    pacchetti: { id: string; scadenza_iscrizione: string }[];
+  },
+) {
+  const supabase = await createClient();
+  const admin = await richiediAdmin(supabase);
+  if (!admin) return { ok: false as const, error: "Non autorizzato." };
+
+  for (const m of dati.moduli) {
+    if (!m.scadenza_iscrizione || !m.data_inizio) {
+      return { ok: false as const, error: "Compila tutte le date dei moduli." };
+    }
+    if (m.scadenza_iscrizione > m.data_inizio) {
+      return {
+        ok: false as const,
+        error: "In ogni modulo la scadenza iscrizione deve precedere (o coincidere con) la data di inizio.",
+      };
+    }
+  }
+  for (const p of dati.pacchetti) {
+    if (!p.scadenza_iscrizione) {
+      return { ok: false as const, error: "Compila tutte le date dei pacchetti." };
+    }
+  }
+
+  const risultati = await Promise.all([
+    supabase
+      .from("corsi")
+      .update({ calendario: dati.calendario.trim() || null })
+      .eq("id", corsoId),
+    ...dati.moduli.map((m) =>
+      supabase
+        .from("moduli_corso")
+        .update({ scadenza_iscrizione: m.scadenza_iscrizione, data_inizio: m.data_inizio })
+        .eq("id", m.id),
+    ),
+    ...dati.pacchetti.map((p) =>
+      supabase.from("pacchetti_corso").update({ scadenza_iscrizione: p.scadenza_iscrizione }).eq("id", p.id),
+    ),
+  ]);
+
+  const fallito = risultati.find((r) => r.error);
+  if (fallito?.error) return { ok: false as const, error: fallito.error.message };
+
+  revalidatePath("/admin/corsi", "layout");
   revalidatePath("/catalogo");
   return { ok: true as const };
 }

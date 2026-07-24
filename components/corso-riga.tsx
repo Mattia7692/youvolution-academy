@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { aggiornaCorso, eliminaCorso } from "@/app/(autenticato)/admin/actions";
+import { aggiornaCorso, duplicaCorso, eliminaCorso } from "@/app/(autenticato)/admin/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +23,7 @@ export type Corso = {
   metodo_pagamento: MetodoPagamento;
   attivo: boolean;
   sold_out_manuale: boolean;
+  iscrizioni_chiuse_manuale: boolean;
 };
 
 function riepilogoPrezzo(moduli: ModuloCorso[], pacchetti: PacchettoCorso[]) {
@@ -119,6 +120,32 @@ export function CorsoRiga({
     router.refresh();
   };
 
+  const handleToggleIscrizioniChiuse = async () => {
+    setError(null);
+    setIsLoading(true);
+    const risultato = await aggiornaCorso(corso.id, {
+      iscrizioni_chiuse_manuale: !corso.iscrizioni_chiuse_manuale,
+    });
+    setIsLoading(false);
+    if (!risultato.ok) {
+      setError(risultato.error);
+      return;
+    }
+    router.refresh();
+  };
+
+  const handleDuplica = async () => {
+    setError(null);
+    setIsLoading(true);
+    const risultato = await duplicaCorso(corso.id);
+    setIsLoading(false);
+    if (!risultato.ok) {
+      setError(risultato.error);
+      return;
+    }
+    router.push(`/admin/corsi/${risultato.corsoId}/date`);
+  };
+
   if (inModifica) {
     return (
       <div className="rounded-xl border border-border bg-card p-5 space-y-3">
@@ -183,6 +210,11 @@ export function CorsoRiga({
           </Badge>
           {nienteAcquistabile && <Badge variant="destructive">Da configurare</Badge>}
           {corso.sold_out_manuale && <Badge variant="destructive">Sold out (manuale)</Badge>}
+          {corso.iscrizioni_chiuse_manuale && (
+            <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+              Iscrizioni chiuse (manuale)
+            </Badge>
+          )}
         </div>
         {corso.descrizione && (
           <p className="text-sm text-muted-foreground mt-1 line-clamp-2 max-w-2xl">
@@ -206,11 +238,17 @@ export function CorsoRiga({
         <Button size="sm" variant="outline" onClick={() => setInModifica(true)} disabled={isLoading}>
           Modifica
         </Button>
+        <Button size="sm" variant="outline" onClick={handleDuplica} disabled={isLoading}>
+          Duplica
+        </Button>
         <Button size="sm" variant="outline" onClick={handleToggleAttivo} disabled={isLoading}>
           {corso.attivo ? "Disattiva" : "Attiva"}
         </Button>
         <Button size="sm" variant="outline" onClick={handleToggleSoldOut} disabled={isLoading}>
           {corso.sold_out_manuale ? "Rimuovi sold out" : "Segna sold out"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={handleToggleIscrizioniChiuse} disabled={isLoading}>
+          {corso.iscrizioni_chiuse_manuale ? "Riapri iscrizioni" : "Chiudi iscrizioni"}
         </Button>
         {confermaEliminazione ? (
           <>

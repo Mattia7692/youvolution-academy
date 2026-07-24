@@ -15,7 +15,9 @@ export default async function GestioneCorsiPage() {
     await Promise.all([
       supabase
         .from("corsi")
-        .select("id, titolo, descrizione, calendario, metodo_pagamento, sold_out_manuale, attivo")
+        .select(
+          "id, titolo, descrizione, calendario, metodo_pagamento, sold_out_manuale, iscrizioni_chiuse_manuale, attivo",
+        )
         .order("created_at", { ascending: false }),
       supabase
         .from("moduli_corso")
