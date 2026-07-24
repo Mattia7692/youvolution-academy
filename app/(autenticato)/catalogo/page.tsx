@@ -162,7 +162,7 @@ export default async function CatalogoPage() {
             return (
               <Card
                 key={corso.id}
-                className={`relative overflow-hidden h-full py-4 gap-3 ${
+                className={`relative overflow-hidden py-5 gap-3 ${
                   inSospeso ? "border-orange-300 bg-orange-50 dark:bg-orange-950/20" : ""
                 }`}
               >
@@ -180,16 +180,16 @@ export default async function CatalogoPage() {
                     </span>
                   </div>
                 )}
-                <CardHeader className="px-4 gap-1">
+                <CardHeader className="px-4 gap-1 shrink-0">
                   {edizione && (
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       {edizione}
                     </p>
                   )}
-                  <CardTitle className="min-h-[2.5rem] text-base leading-tight line-clamp-2">
+                  <CardTitle className="min-h-[2.75rem] text-base leading-tight line-clamp-2">
                     {titoloPrincipale}
                   </CardTitle>
-                  <CardDescription className="min-h-[2.5rem] text-xs line-clamp-2">
+                  <CardDescription className="min-h-[2.75rem] text-xs leading-normal line-clamp-2">
                     {corso.descrizione}
                   </CardDescription>
                 </CardHeader>
@@ -211,7 +211,7 @@ export default async function CatalogoPage() {
                     </p>
                   )}
                 </CardContent>
-                <CardFooter className="px-4">
+                <CardFooter className="px-4 shrink-0">
                   {soldOut ? (
                     <Button size="sm" className="w-full" variant="outline" disabled>
                       Sold out
