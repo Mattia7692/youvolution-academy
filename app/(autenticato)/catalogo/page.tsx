@@ -160,6 +160,13 @@ export default async function CatalogoPage() {
                     </span>
                   </div>
                 )}
+                {iscrizioniChiuse && (
+                  <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+                    <span className="-rotate-12 rounded-md border-4 border-blue-600/80 bg-background/60 px-6 py-1.5 text-2xl font-black uppercase tracking-widest text-blue-600/80">
+                      Iscrizioni chiuse
+                    </span>
+                  </div>
+                )}
                 <CardHeader>
                   <CardTitle>{corso.titolo}</CardTitle>
                   {corso.descrizione && (
@@ -171,11 +178,6 @@ export default async function CatalogoPage() {
                   {earlyBirdAttivoPerCorso.get(corso.id) && (
                     <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 mt-1">
                       Sconto early bird attivo
-                    </span>
-                  )}
-                  {iscrizioniChiuse && (
-                    <span className="inline-flex w-fit items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 mt-1">
-                      Iscrizioni chiuse
                     </span>
                   )}
                   {inSospeso && (
