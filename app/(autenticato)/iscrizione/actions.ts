@@ -33,9 +33,14 @@ export type DatiFatturazione = {
   codice_sdi: string;
 };
 
-export type SelezioneCorso =
-  | { tipo: "moduli"; moduloIds: string[] }
-  | { tipo: "pacchetto"; pacchettoId: string };
+// Un pacchetto e moduli indipendenti (non inclusi nel pacchetto, es. il
+// Modulo 1 di Professional Coach venduto a se' rispetto al pacchetto
+// "Moduli II-VII") si possono acquistare insieme nella stessa iscrizione:
+// pacchettoId e moduloIds non sono piu' mutuamente esclusivi.
+export type SelezioneCorso = {
+  pacchettoId: string | null;
+  moduloIds: string[];
+};
 
 export type DatiPasso1 = {
   selezione: SelezioneCorso;
@@ -85,15 +90,21 @@ export async function salvaPasso1(corsoId: string, dati: DatiPasso1) {
     .eq("attivo", true);
   const cutoffEarlyBird = scadenzaEarlyBird((tuttiModuli ?? []).map((m) => m.data_inizio));
 
+  const { pacchettoId, moduloIds: moduloIdsIndipendenti } = dati.selezione;
+
+  if (!pacchettoId && moduloIdsIndipendenti.length === 0) {
+    return { ok: false as const, error: "Seleziona almeno un modulo." };
+  }
+
   let imponibile = 0;
-  let moduloIdsFinali: string[] = [];
+  const moduloIdsFinali = new Set<string>();
   let pacchettoIdFinale: string | null = null;
 
-  if (dati.selezione.tipo === "pacchetto") {
+  if (pacchettoId) {
     const { data: pacchetto } = await supabase
       .from("pacchetti_corso")
       .select("id, corso_id, imponibile, scadenza_iscrizione, posti_disponibili, iscrizioni_chiuse, attivo")
-      .eq("id", dati.selezione.pacchettoId)
+      .eq("id", pacchettoId)
       .maybeSingle();
 
     if (!pacchetto || pacchetto.corso_id !== corsoId || !pacchetto.attivo) {
@@ -114,28 +125,31 @@ export async function salvaPasso1(corsoId: string, dati: DatiPasso1) {
       }
     }
 
-    imponibile = pacchetto.imponibile;
+    imponibile += pacchetto.imponibile;
     pacchettoIdFinale = pacchetto.id;
 
     const { data: moduliInclusi } = await supabase
       .from("pacchetto_moduli")
       .select("modulo_id")
       .eq("pacchetto_id", pacchetto.id);
-    moduloIdsFinali = (moduliInclusi ?? []).map((m) => m.modulo_id);
-  } else {
-    const moduloIds = dati.selezione.moduloIds;
-    if (moduloIds.length === 0) {
-      return { ok: false as const, error: "Seleziona almeno un modulo." };
-    }
+    for (const m of moduliInclusi ?? []) moduloIdsFinali.add(m.modulo_id);
+  }
 
+  // Moduli indipendenti: acquistati a se', in aggiunta a un eventuale
+  // pacchetto (es. Modulo 1 di Professional Coach insieme al pacchetto
+  // "Moduli II-VII"). Chi e' gia' incluso nel pacchetto non va ri-validato
+  // ne' ri-sommato qui.
+  const moduloIdsDaValidare = moduloIdsIndipendenti.filter((id) => !moduloIdsFinali.has(id));
+
+  if (moduloIdsDaValidare.length > 0) {
     const { data: moduli } = await supabase
       .from("moduli_corso")
       .select("id, corso_id, imponibile, scadenza_iscrizione, posti_disponibili, iscrizioni_chiuse, attivo")
-      .in("id", moduloIds);
+      .in("id", moduloIdsDaValidare);
 
     if (
       !moduli ||
-      moduli.length !== moduloIds.length ||
+      moduli.length !== moduloIdsDaValidare.length ||
       moduli.some((m) => m.corso_id !== corsoId || !m.attivo)
     ) {
       return { ok: false as const, error: "Selezione moduli non valida." };
@@ -161,8 +175,8 @@ export async function salvaPasso1(corsoId: string, dati: DatiPasso1) {
       }
     }
 
-    imponibile = moduli.reduce((somma, m) => somma + m.imponibile, 0);
-    moduloIdsFinali = moduloIds;
+    imponibile += moduli.reduce((somma, m) => somma + m.imponibile, 0);
+    for (const id of moduloIdsDaValidare) moduloIdsFinali.add(id);
   }
 
   // Sconto non cumulabile: un codice valido sostituisce l'early bird
@@ -255,7 +269,9 @@ export async function salvaPasso1(corsoId: string, dati: DatiPasso1) {
   await supabase.from("iscrizione_moduli").delete().eq("iscrizione_id", iscrizione.id);
   const { error: moduliError } = await supabase
     .from("iscrizione_moduli")
-    .insert(moduloIdsFinali.map((moduloId) => ({ iscrizione_id: iscrizione.id, modulo_id: moduloId })));
+    .insert(
+      Array.from(moduloIdsFinali).map((moduloId) => ({ iscrizione_id: iscrizione.id, modulo_id: moduloId })),
+    );
 
   if (moduliError) {
     return { ok: false as const, error: moduliError.message };

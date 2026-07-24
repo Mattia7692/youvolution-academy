@@ -133,8 +133,12 @@ export function Passo1Form({
       setFatturazione((prev) => ({ ...prev, [chiave]: e.target.value })),
   });
 
+  // Pacchetto e moduli indipendenti (non inclusi nel pacchetto, es. il
+  // Modulo 1 di Professional Coach) coesistono: selezionare l'uno non tocca
+  // piu' l'altro, a meno che il modulo toccato sia proprio uno di quelli
+  // inclusi nel pacchetto attivo (nel qual caso la sua checkbox e' comunque
+  // disabilitata lato UI, quindi toggleModulo non viene mai chiamato per lui).
   const toggleModulo = (moduloId: string) => {
-    setPacchettoSelezionato(null);
     setModuloIdsSelezionati((prev) =>
       prev.includes(moduloId) ? prev.filter((id) => id !== moduloId) : [...prev, moduloId],
     );
@@ -142,7 +146,13 @@ export function Passo1Form({
 
   const selezionaPacchetto = (pacchettoId: string | null) => {
     setPacchettoSelezionato(pacchettoId);
-    if (pacchettoId) setModuloIdsSelezionati([]);
+    if (pacchettoId) {
+      const pacchetto = pacchetti.find((p) => p.id === pacchettoId);
+      const moduliInclusi = pacchetto?.moduloIds ?? [];
+      // I moduli gia' inclusi nel pacchetto non restano anche come selezione
+      // indipendente, altrimenti verrebbero ri-sommati/duplicati nel prezzo.
+      setModuloIdsSelezionati((prev) => prev.filter((id) => !moduliInclusi.includes(id)));
+    }
   };
 
   // Se i moduli selezionati a mano coincidono esattamente con quelli di un
@@ -163,13 +173,15 @@ export function Passo1Form({
     : 0;
 
   const righeSelezionate = useMemo(() => {
+    const righe: { titolo: string; imponibile: number }[] = [];
     if (pacchettoSelezionato) {
       const pacchetto = pacchetti.find((p) => p.id === pacchettoSelezionato);
-      return pacchetto ? [{ titolo: pacchetto.titolo, imponibile: pacchetto.imponibile }] : [];
+      if (pacchetto) righe.push({ titolo: pacchetto.titolo, imponibile: pacchetto.imponibile });
     }
-    return moduli
+    const moduliIndipendenti = moduli
       .filter((m) => moduloIdsSelezionati.includes(m.id))
       .map((m) => ({ titolo: m.titolo, imponibile: m.imponibile }));
+    return [...righe, ...moduliIndipendenti];
   }, [pacchettoSelezionato, pacchetti, moduli, moduloIdsSelezionati]);
 
   const imponibile = righeSelezionate.reduce((somma, r) => somma + r.imponibile, 0);
@@ -225,9 +237,7 @@ export function Passo1Form({
 
     setIsLoading(true);
     const risultato = await salvaPasso1(corsoId, {
-      selezione: pacchettoSelezionato
-        ? { tipo: "pacchetto", pacchettoId: pacchettoSelezionato }
-        : { tipo: "moduli", moduloIds: moduloIdsSelezionati },
+      selezione: { pacchettoId: pacchettoSelezionato, moduloIds: moduloIdsSelezionati },
       fiscali,
       fatturazione,
       codiceSconto,
@@ -257,25 +267,70 @@ export function Passo1Form({
             </div>
 
             <div className="flex flex-col gap-2">
-              {moduli.map((modulo) => {
-                if (!modulo.acquistabile) {
+              {(() => {
+                const pacchettoAttivo = pacchettoSelezionato
+                  ? pacchetti.find((p) => p.id === pacchettoSelezionato)
+                  : null;
+                return moduli.map((modulo) => {
+                  if (!modulo.acquistabile) {
+                    return (
+                      <div
+                        key={modulo.id}
+                        className="flex items-start gap-3 rounded-lg border border-dashed border-border p-3 opacity-80"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="text-sm font-medium text-foreground">{modulo.titolo}</span>
+                            <span className="inline-flex w-fit items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                              Incluso nei pacchetti
+                            </span>
+                          </div>
+                          {modulo.descrizione && (
+                            <p className="text-sm text-muted-foreground mt-1">{modulo.descrizione}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Inizia il {formattaData(modulo.data_inizio)}
+                          </p>
+                          {modulo.webinar.length > 0 && (
+                            <div className="mt-1 space-y-0.5">
+                              {modulo.webinar.map((w) => (
+                                <p key={w.id} className="text-xs text-muted-foreground">
+                                  <span className="font-semibold text-foreground">{w.titolo}</span>{" "}
+                                  — {formattaDataOra(w.inizio)}–{formattaOra(w.fine)}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const copertoDaPacchetto = !!pacchettoAttivo?.moduloIds.includes(modulo.id);
+                  const selezionato = copertoDaPacchetto || moduloIdsSelezionati.includes(modulo.id);
                   return (
-                    <div
+                    <label
                       key={modulo.id}
-                      className="flex items-start gap-3 rounded-lg border border-dashed border-border p-3 opacity-80"
+                      className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                        selezionato ? "border-primary bg-primary/5" : "border-border"
+                      }`}
                     >
+                      <Checkbox
+                        checked={selezionato}
+                        disabled={copertoDaPacchetto}
+                        onCheckedChange={() => toggleModulo(modulo.id)}
+                      />
                       <div className="flex-1">
                         <div className="flex items-baseline justify-between gap-2">
                           <span className="text-sm font-medium text-foreground">{modulo.titolo}</span>
-                          <span className="inline-flex w-fit items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                            Incluso nei pacchetti
-                          </span>
+                          <span className="text-sm font-semibold">{formattaPrezzo(modulo.imponibile)}</span>
                         </div>
                         {modulo.descrizione && (
                           <p className="text-sm text-muted-foreground mt-1">{modulo.descrizione}</p>
                         )}
                         <p className="text-xs text-muted-foreground mt-1">
-                          Inizia il {formattaData(modulo.data_inizio)}
+                          Inizia il {formattaData(modulo.data_inizio)} · iscrizioni entro il{" "}
+                          {formattaData(modulo.scadenza_iscrizione)}
                         </p>
                         {modulo.webinar.length > 0 && (
                           <div className="mt-1 space-y-0.5">
@@ -288,51 +343,10 @@ export function Passo1Form({
                           </div>
                         )}
                       </div>
-                    </div>
+                    </label>
                   );
-                }
-
-                const selezionato = pacchettoSelezionato
-                  ? false
-                  : moduloIdsSelezionati.includes(modulo.id);
-                return (
-                  <label
-                    key={modulo.id}
-                    className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
-                      selezionato ? "border-primary bg-primary/5" : "border-border"
-                    }`}
-                  >
-                    <Checkbox
-                      checked={selezionato}
-                      disabled={!!pacchettoSelezionato}
-                      onCheckedChange={() => toggleModulo(modulo.id)}
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="text-sm font-medium text-foreground">{modulo.titolo}</span>
-                        <span className="text-sm font-semibold">{formattaPrezzo(modulo.imponibile)}</span>
-                      </div>
-                      {modulo.descrizione && (
-                        <p className="text-sm text-muted-foreground mt-1">{modulo.descrizione}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Inizia il {formattaData(modulo.data_inizio)} · iscrizioni entro il{" "}
-                        {formattaData(modulo.scadenza_iscrizione)}
-                      </p>
-                      {modulo.webinar.length > 0 && (
-                        <div className="mt-1 space-y-0.5">
-                          {modulo.webinar.map((w) => (
-                            <p key={w.id} className="text-xs text-muted-foreground">
-                              <span className="font-semibold text-foreground">{w.titolo}</span>{" "}
-                              — {formattaDataOra(w.inizio)}–{formattaOra(w.fine)}
-                            </p>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </label>
-                );
-              })}
+                });
+              })()}
             </div>
 
             {pacchettoConsigliato && risparmioPacchetto > 0 && (

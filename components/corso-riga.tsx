@@ -198,8 +198,10 @@ export function CorsoRiga({
     );
   }
 
+  const bottoneClasse = "w-full h-auto min-h-9 py-1.5 whitespace-normal text-xs leading-tight text-center";
+
   return (
-    <div className="rounded-xl border border-border bg-card p-5 flex flex-wrap items-center justify-between gap-3">
+    <div className="rounded-xl border border-border bg-card p-5 flex flex-col gap-3">
       <div>
         <div className="flex items-center gap-2 flex-wrap">
           <Link href={`/admin/corsi/${corso.id}`} className="font-medium text-foreground hover:underline">
@@ -231,33 +233,67 @@ export function CorsoRiga({
           {METODI_PAGAMENTO[corso.metodo_pagamento].etichetta}
         </p>
       </div>
-      <div className="flex gap-2">
-        <Button asChild size="sm" variant="outline">
-          <Link href={`/admin/corsi/${corso.id}`}>Gestisci moduli e iscritti</Link>
+      <div className="grid grid-cols-4 gap-2">
+        <Button asChild size="sm" variant="outline" className={bottoneClasse}>
+          <Link href={`/admin/corsi/${corso.id}`}>Gestisci moduli</Link>
         </Button>
-        <Button size="sm" variant="outline" onClick={() => setInModifica(true)} disabled={isLoading}>
+        <Button asChild size="sm" variant="outline" className={bottoneClasse}>
+          <Link href={`/admin/corsi/${corso.id}/iscritti`}>Iscrizioni</Link>
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className={bottoneClasse}
+          onClick={() => setInModifica(true)}
+          disabled={isLoading}
+        >
           Modifica
         </Button>
-        <Button size="sm" variant="outline" onClick={handleDuplica} disabled={isLoading}>
+        <Button size="sm" variant="outline" className={bottoneClasse} onClick={handleDuplica} disabled={isLoading}>
           Duplica
         </Button>
-        <Button size="sm" variant="outline" onClick={handleToggleAttivo} disabled={isLoading}>
+        <Button
+          size="sm"
+          variant="outline"
+          className={bottoneClasse}
+          onClick={handleToggleAttivo}
+          disabled={isLoading}
+        >
           {corso.attivo ? "Disattiva" : "Attiva"}
         </Button>
-        <Button size="sm" variant="outline" onClick={handleToggleSoldOut} disabled={isLoading}>
+        <Button
+          size="sm"
+          variant="outline"
+          className={bottoneClasse}
+          onClick={handleToggleSoldOut}
+          disabled={isLoading}
+        >
           {corso.sold_out_manuale ? "Rimuovi sold out" : "Segna sold out"}
         </Button>
-        <Button size="sm" variant="outline" onClick={handleToggleIscrizioniChiuse} disabled={isLoading}>
+        <Button
+          size="sm"
+          variant="outline"
+          className={bottoneClasse}
+          onClick={handleToggleIscrizioniChiuse}
+          disabled={isLoading}
+        >
           {corso.iscrizioni_chiuse_manuale ? "Riapri iscrizioni" : "Chiudi iscrizioni"}
         </Button>
         {confermaEliminazione ? (
           <>
-            <Button size="sm" variant="destructive" onClick={handleElimina} disabled={isLoading}>
+            <Button
+              size="sm"
+              variant="destructive"
+              className={bottoneClasse}
+              onClick={handleElimina}
+              disabled={isLoading}
+            >
               Conferma eliminazione
             </Button>
             <Button
               size="sm"
               variant="outline"
+              className={bottoneClasse}
               onClick={() => setConfermaEliminazione(false)}
               disabled={isLoading}
             >
@@ -268,6 +304,7 @@ export function CorsoRiga({
           <Button
             size="sm"
             variant="destructive"
+            className={bottoneClasse}
             onClick={() => setConfermaEliminazione(true)}
             disabled={isLoading}
           >
