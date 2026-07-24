@@ -8,6 +8,7 @@ import {
   type DatiFiscali,
 } from "@/app/(autenticato)/iscrizione/actions";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 import {
   ALIQUOTA_IVA,
   EARLY_BIRD_PERCENTUALE,
@@ -558,7 +559,14 @@ export function Passo1Form({
           </>
         )}
 
-        <Button type="submit" className="w-full mt-3" disabled={isLoading}>
+        <Button
+          type="submit"
+          className={cn(
+            "w-full mt-3",
+            consensoCondizioni && consensoPrivacy && "bg-emerald-600 hover:bg-emerald-700",
+          )}
+          disabled={isLoading || !consensoCondizioni || !consensoPrivacy}
+        >
           {isLoading ? "Salvataggio…" : "Prosegui al pagamento"}
         </Button>
         <p className="text-xs text-center text-muted-foreground">
