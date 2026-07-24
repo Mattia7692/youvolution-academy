@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { EARLY_BIRD_PERCENTUALE, scadenzaEarlyBird, scomponiPrezzo } from "@/lib/prezzo";
+import { ALUMNI_PERCENTUALE, EARLY_BIRD_PERCENTUALE, scadenzaEarlyBird, scomponiPrezzo } from "@/lib/prezzo";
 import {
   CONSENSO_CONDIZIONI_ISCRIZIONE_VERSIONE_CORRENTE,
   CONSENSO_PRIVACY_ISCRIZIONE_VERSIONE_CORRENTE,
@@ -179,11 +179,16 @@ export async function salvaPasso1(corsoId: string, dati: DatiPasso1) {
     for (const id of moduloIdsDaValidare) moduloIdsFinali.add(id);
   }
 
-  // Sconto non cumulabile: un codice valido sostituisce l'early bird
-  // automatico, non si sommano mai.
-  let scontoTipo: "nessuno" | "early_bird" | "codice" = "nessuno";
+  // Sconti non cumulabili: si applica sempre il migliore tra quelli attivi
+  // (codice inserito esplicitamente, early bird automatico, alumni FUTURE
+  // automatico). Un codice esplicitamente inserito ma non valido resta un
+  // errore bloccante, non viene silenziosamente ignorato a favore degli
+  // altri sconti.
+  let scontoTipo: "nessuno" | "early_bird" | "codice" | "alumni" = "nessuno";
   let scontoPercentuale = 0;
   const codiceInserito = dati.codiceSconto.trim();
+
+  const candidati: { tipo: "early_bird" | "codice" | "alumni"; percentuale: number }[] = [];
 
   if (codiceInserito) {
     const { data: percentuale } = await supabase.rpc("valida_codice_sconto", {
@@ -193,11 +198,33 @@ export async function salvaPasso1(corsoId: string, dati: DatiPasso1) {
     if (!percentuale) {
       return { ok: false as const, error: "Codice sconto non valido o scaduto." };
     }
-    scontoTipo = "codice";
-    scontoPercentuale = percentuale;
-  } else if (cutoffEarlyBird && oggi <= cutoffEarlyBird) {
-    scontoTipo = "early_bird";
-    scontoPercentuale = EARLY_BIRD_PERCENTUALE;
+    candidati.push({ tipo: "codice", percentuale });
+  }
+
+  if (cutoffEarlyBird && oggi <= cutoffEarlyBird) {
+    candidati.push({ tipo: "early_bird", percentuale: EARLY_BIRD_PERCENTUALE });
+  }
+
+  // Alumni FUTURE: almeno un'iscrizione verificata su un corso diverso da
+  // questo — mai sullo stesso corso, per evitare che il modulo 1 sblocchi lo
+  // sconto sui moduli successivi dello stesso corso.
+  const { data: iscrizionePassata } = await supabase
+    .from("iscrizioni")
+    .select("id")
+    .eq("corsista_id", user.id)
+    .eq("stato", "verificata")
+    .neq("corso_id", corsoId)
+    .limit(1)
+    .maybeSingle();
+
+  if (iscrizionePassata) {
+    candidati.push({ tipo: "alumni", percentuale: ALUMNI_PERCENTUALE });
+  }
+
+  if (candidati.length > 0) {
+    const migliore = candidati.reduce((a, b) => (b.percentuale > a.percentuale ? b : a));
+    scontoTipo = migliore.tipo;
+    scontoPercentuale = migliore.percentuale;
   }
 
   const { totale } = scomponiPrezzo(imponibile, scontoPercentuale);

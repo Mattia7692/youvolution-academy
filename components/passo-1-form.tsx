@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import {
   ALIQUOTA_IVA,
+  ALUMNI_PERCENTUALE,
   EARLY_BIRD_PERCENTUALE,
   formattaData,
   formattaDataOra,
@@ -86,10 +87,12 @@ export function Passo1Form({
   corsoId,
   moduli,
   pacchetti,
+  alumniAttivo,
 }: {
   corsoId: string;
   moduli: ModuloDisponibile[];
   pacchetti: PacchettoDisponibile[];
+  alumniAttivo: boolean;
 }) {
   const router = useRouter();
   const oggi = oggiISO();
@@ -186,14 +189,44 @@ export function Passo1Form({
 
   const imponibile = righeSelezionate.reduce((somma, r) => somma + r.imponibile, 0);
 
-  const scontoPercentuale =
-    codiceStato?.tipo === "ok" ? codiceStato.percentuale : earlyBirdAttivo ? EARLY_BIRD_PERCENTUALE : 0;
-  const scontoEtichetta =
-    codiceStato?.tipo === "ok"
-      ? `Codice ${codiceSconto.trim().toUpperCase()} (-${codiceStato.percentuale}%)`
-      : earlyBirdAttivo
-        ? `Early bird (-${EARLY_BIRD_PERCENTUALE}%)`
-        : null;
+  // Sconti non cumulabili: si applica sempre il migliore tra quelli attivi,
+  // stessa logica di salvaPasso1 lato server (l'importo che conta davvero
+  // e' comunque ricalcolato li' — questa e' solo l'anteprima).
+  const candidatiSconto = [
+    ...(codiceStato?.tipo === "ok"
+      ? [
+          {
+            tipo: "codice" as const,
+            etichetta: `Codice ${codiceSconto.trim().toUpperCase()} (-${codiceStato.percentuale}%)`,
+            percentuale: codiceStato.percentuale,
+          },
+        ]
+      : []),
+    ...(earlyBirdAttivo
+      ? [
+          {
+            tipo: "early_bird" as const,
+            etichetta: `Early bird (-${EARLY_BIRD_PERCENTUALE}%)`,
+            percentuale: EARLY_BIRD_PERCENTUALE,
+          },
+        ]
+      : []),
+    ...(alumniAttivo
+      ? [
+          {
+            tipo: "alumni" as const,
+            etichetta: `Alumni FUTURE (-${ALUMNI_PERCENTUALE}%)`,
+            percentuale: ALUMNI_PERCENTUALE,
+          },
+        ]
+      : []),
+  ];
+  const scontoMigliore = candidatiSconto.reduce<(typeof candidatiSconto)[number] | null>(
+    (migliore, candidato) => (!migliore || candidato.percentuale > migliore.percentuale ? candidato : migliore),
+    null,
+  );
+  const scontoPercentuale = scontoMigliore?.percentuale ?? 0;
+  const scontoEtichetta = scontoMigliore?.etichetta ?? null;
 
   const prezzo = scomponiPrezzo(imponibile, scontoPercentuale);
 
@@ -424,18 +457,24 @@ export function Passo1Form({
           {codiceStato?.tipo === "errore" && (
             <p className="text-sm text-destructive">✕ Codice non valido o scaduto</p>
           )}
-          {!codiceStato && earlyBirdAttivo && (
+          {!codiceStato && scontoMigliore?.tipo === "alumni" && (
+            <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+              Sconto alumni FUTURE attivo (-{ALUMNI_PERCENTUALE}%)
+            </span>
+          )}
+          {!codiceStato && scontoMigliore?.tipo === "early_bird" && (
             <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
               Sconto early bird attivo fino al {formattaData(cutoffEarlyBird!)}
             </span>
           )}
-          {!codiceStato && !earlyBirdAttivo && cutoffEarlyBird && (
+          {!codiceStato && !earlyBirdAttivo && !alumniAttivo && cutoffEarlyBird && (
             <p className="text-xs text-muted-foreground">
               Early bird scaduto il {formattaData(cutoffEarlyBird)}.
             </p>
           )}
           <p className="text-xs text-muted-foreground">
-            Gli sconti non sono cumulabili: si applica sempre e solo uno tra codice ed early bird.
+            Gli sconti non sono cumulabili: si applica sempre il migliore tra codice, early bird e
+            alumni FUTURE.
           </p>
         </div>
 

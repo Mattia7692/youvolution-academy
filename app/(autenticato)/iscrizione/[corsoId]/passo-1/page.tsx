@@ -50,6 +50,22 @@ export default async function Passo1Page({
     }
   }
 
+  // Sconto alumni FUTURE: calcolato qui (server) cosi' l'anteprima prezzo del
+  // form mostra subito il tag corretto, senza dover indovinare lato client
+  // se il corsista ha gia' un'iscrizione verificata su un altro corso.
+  let alumniAttivo = false;
+  if (user) {
+    const { data: iscrizionePassata } = await supabase
+      .from("iscrizioni")
+      .select("id")
+      .eq("corsista_id", user.id)
+      .eq("stato", "verificata")
+      .neq("corso_id", corsoId)
+      .limit(1)
+      .maybeSingle();
+    alumniAttivo = !!iscrizionePassata;
+  }
+
   const [{ data: moduli }, { data: pacchetti }, { data: pacchettoModuli }] = await Promise.all([
     supabase
       .from("moduli_corso")
@@ -108,7 +124,12 @@ export default async function Passo1Page({
         </h1>
         <p className="text-muted-foreground mt-1">{corso.titolo}</p>
       </div>
-      <Passo1Form corsoId={corso.id} moduli={moduliConWebinar} pacchetti={pacchettiConModuli} />
+      <Passo1Form
+        corsoId={corso.id}
+        moduli={moduliConWebinar}
+        pacchetti={pacchettiConModuli}
+        alumniAttivo={alumniAttivo}
+      />
     </div>
   );
 }

@@ -7,6 +7,13 @@ export const ALIQUOTA_IVA = 22;
 // scelta del corsista). Non cumulabile con un codice sconto.
 export const EARLY_BIRD_PERCENTUALE = 10;
 
+// Sconto alumni FUTURE: automatico per chi ha gia' un'iscrizione verificata
+// su un corso diverso da quello che sta acquistando ora (moduli diversi
+// dello stesso corso non danno diritto allo sconto). Esclusivo con early
+// bird e codice sconto (mai cumulati): si applica il migliore tra quelli
+// attivi.
+export const ALUMNI_PERCENTUALE = 15;
+
 // La scadenza early bird non e' una data configurata a mano: e' sempre
 // derivata come N giorni prima della data di inizio del PRIMO modulo del
 // corso (quello con data_inizio piu' vicina) — vale per l'intero corso,
