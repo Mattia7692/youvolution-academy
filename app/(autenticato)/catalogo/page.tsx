@@ -141,7 +141,7 @@ export default async function CatalogoPage() {
       {!corsi || corsi.length === 0 ? (
         <p className="text-muted-foreground">Nessun corso disponibile al momento.</p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {corsi.map((corso) => {
             const inSospeso = corsiInSospeso.has(corso.id);
             const soldOut =
@@ -151,44 +151,57 @@ export default async function CatalogoPage() {
               !soldOut &&
               (corso.iscrizioni_chiuse_manuale || !!iscrizioniChiuseAutomaticoPerCorso.get(corso.id));
 
+            // Il titolo di un'edizione e' spesso "Nome corso — edizione X":
+            // separare le due parti evita che il nome si ripeta identico e
+            // occupi due righe intere in ogni card quando ci sono piu'
+            // edizioni dello stesso corso in catalogo.
+            const [titoloPrincipale, edizione] = corso.titolo.includes(" — ")
+              ? corso.titolo.split(" — ")
+              : [corso.titolo, null];
+
             return (
               <Card
                 key={corso.id}
-                className={`relative overflow-hidden h-full ${
+                className={`relative overflow-hidden h-full py-4 gap-3 ${
                   inSospeso ? "border-orange-300 bg-orange-50 dark:bg-orange-950/20" : ""
                 }`}
               >
                 {soldOut && (
                   <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-                    <span className="-rotate-12 rounded-md border-4 border-red-600/80 bg-background/60 px-6 py-1.5 text-2xl font-black uppercase tracking-widest text-red-600/80">
+                    <span className="-rotate-12 rounded-md border-4 border-red-600/80 bg-background/60 px-4 py-1 text-lg font-black uppercase tracking-widest text-red-600/80">
                       Sold out
                     </span>
                   </div>
                 )}
                 {iscrizioniChiuse && (
                   <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-                    <span className="-rotate-12 rounded-md border-4 border-blue-600/80 bg-background/60 px-6 py-1.5 text-2xl font-black uppercase tracking-widest text-blue-600/80">
+                    <span className="-rotate-12 rounded-md border-4 border-blue-600/80 bg-background/60 px-4 py-1 text-lg font-black uppercase tracking-widest text-blue-600/80">
                       Iscrizioni chiuse
                     </span>
                   </div>
                 )}
-                <CardHeader>
-                  <CardTitle className="min-h-[3.5rem] text-lg leading-tight line-clamp-2">
-                    {corso.titolo}
+                <CardHeader className="px-4 gap-1">
+                  {edizione && (
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      {edizione}
+                    </p>
+                  )}
+                  <CardTitle className="min-h-[2.5rem] text-base leading-tight line-clamp-2">
+                    {titoloPrincipale}
                   </CardTitle>
-                  <CardDescription className="min-h-[4.5rem] line-clamp-3">
+                  <CardDescription className="min-h-[2.5rem] text-xs line-clamp-2">
                     {corso.descrizione}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col gap-2">
+                <CardContent className="flex-1 flex flex-col gap-1.5 px-4">
                   {corso.calendario && (
                     <div>
-                      <p className="text-sm font-semibold text-foreground">Informazioni pratiche</p>
-                      <p className="text-sm text-muted-foreground mt-0.5">{corso.calendario}</p>
+                      <p className="text-xs font-semibold text-foreground">Informazioni pratiche</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{corso.calendario}</p>
                     </div>
                   )}
                   {earlyBirdAttivoPerCorso.get(corso.id) && (
-                    <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                    <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
                       Sconto early bird attivo
                     </span>
                   )}
@@ -198,18 +211,19 @@ export default async function CatalogoPage() {
                     </p>
                   )}
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="px-4">
                   {soldOut ? (
-                    <Button className="w-full" variant="outline" disabled>
+                    <Button size="sm" className="w-full" variant="outline" disabled>
                       Sold out
                     </Button>
                   ) : iscrizioniChiuse ? (
-                    <Button className="w-full" variant="outline" disabled>
+                    <Button size="sm" className="w-full" variant="outline" disabled>
                       Iscrizioni chiuse
                     </Button>
                   ) : (
                     <Button
                       asChild
+                      size="sm"
                       className={inSospeso ? "w-full bg-orange-600 hover:bg-orange-700" : "w-full"}
                     >
                       <Link href={`/iscrizione/${corso.id}/${inSospeso ? "passo-2" : "passo-1"}`}>
