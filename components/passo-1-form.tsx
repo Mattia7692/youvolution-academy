@@ -44,6 +44,7 @@ export type ModuloDisponibile = {
   scadenza_iscrizione: string;
   data_inizio: string;
   webinar: WebinarModuloDisponibile[];
+  attivo: boolean;
 };
 
 export type PacchettoDisponibile = {
@@ -257,6 +258,40 @@ export function Passo1Form({
 
             <div className="flex flex-col gap-2">
               {moduli.map((modulo) => {
+                if (!modulo.attivo) {
+                  return (
+                    <div
+                      key={modulo.id}
+                      className="flex items-start gap-3 rounded-lg border border-dashed border-border p-3 opacity-80"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="text-sm font-medium text-foreground">{modulo.titolo}</span>
+                          <span className="inline-flex w-fit items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                            Incluso nei pacchetti
+                          </span>
+                        </div>
+                        {modulo.descrizione && (
+                          <p className="text-sm text-muted-foreground mt-1">{modulo.descrizione}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Inizia il {formattaData(modulo.data_inizio)}
+                        </p>
+                        {modulo.webinar.length > 0 && (
+                          <div className="mt-1 space-y-0.5">
+                            {modulo.webinar.map((w) => (
+                              <p key={w.id} className="text-xs text-muted-foreground">
+                                <span className="font-semibold text-foreground">{w.titolo}</span>{" "}
+                                — {formattaDataOra(w.inizio)}–{formattaOra(w.fine)}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
                 const selezionato = pacchettoSelezionato
                   ? false
                   : moduloIdsSelezionati.includes(modulo.id);
