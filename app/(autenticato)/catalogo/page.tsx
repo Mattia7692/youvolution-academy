@@ -162,7 +162,7 @@ export default async function CatalogoPage() {
             return (
               <Card
                 key={corso.id}
-                className={`relative overflow-hidden py-5 gap-3 ${
+                className={`relative overflow-hidden py-6 gap-4 ${
                   inSospeso ? "border-orange-300 bg-orange-50 dark:bg-orange-950/20" : ""
                 }`}
               >
@@ -180,20 +180,20 @@ export default async function CatalogoPage() {
                     </span>
                   </div>
                 )}
-                <CardHeader className="px-4 gap-1 shrink-0">
+                <CardHeader className="px-4 gap-1.5 shrink-0">
                   {edizione && (
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       {edizione}
                     </p>
                   )}
-                  <CardTitle className="min-h-[2.75rem] text-base leading-tight line-clamp-2">
+                  <CardTitle className="min-h-[3.3rem] text-base leading-tight line-clamp-2">
                     {titoloPrincipale}
                   </CardTitle>
-                  <CardDescription className="min-h-[2.75rem] text-xs leading-normal line-clamp-2">
+                  <CardDescription className="min-h-[3.3rem] text-xs leading-normal line-clamp-2">
                     {corso.descrizione}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col gap-1.5 px-4">
+                <CardContent className="flex-1 flex flex-col gap-2 px-4">
                   {corso.calendario && (
                     <div>
                       <p className="text-xs font-semibold text-foreground">Informazioni pratiche</p>
