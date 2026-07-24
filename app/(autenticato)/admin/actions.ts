@@ -741,3 +741,27 @@ export async function segnalaIscrizione(iscrizioneId: string, nota: string) {
   revalidatePath("/", "layout");
   return { ok: true as const };
 }
+
+// ─── Utenti ─────────────────────────────────────────────────────────────
+
+// Chiunque si registri diventa 'corsista' di default (vedi trigger
+// handle_new_user): qui l'admin promuove un corsista ad admin, o retrocede
+// un admin a corsista. Il trigger blocca_cambio_ruolo in DB rifiuta questo
+// update se il chiamante non e' admin, difesa in profondita' oltre a questo
+// controllo applicativo.
+export async function cambiaRuoloUtente(profiloId: string, ruolo: "corsista" | "admin") {
+  const supabase = await createClient();
+  const admin = await richiediAdmin(supabase);
+  if (!admin) return { ok: false as const, error: "Non autorizzato." };
+
+  if (profiloId === admin.id) {
+    return { ok: false as const, error: "Non puoi cambiare il tuo stesso ruolo." };
+  }
+
+  const { error } = await supabase.from("profiles").update({ ruolo }).eq("id", profiloId);
+
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/admin/utenti");
+  return { ok: true as const };
+}
