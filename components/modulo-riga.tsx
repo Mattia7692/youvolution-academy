@@ -6,6 +6,7 @@ import { aggiornaModulo, eliminaModulo } from "@/app/(autenticato)/admin/actions
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { formattaData, formattaPrezzo } from "@/lib/prezzo";
@@ -13,6 +14,7 @@ import { formattaData, formattaPrezzo } from "@/lib/prezzo";
 export type ModuloCorso = {
   id: string;
   titolo: string;
+  descrizione: string | null;
   imponibile: number;
   scadenza_iscrizione: string;
   data_inizio: string;
@@ -24,6 +26,7 @@ export type ModuloCorso = {
 export function ModuloRiga({ modulo }: { modulo: ModuloCorso }) {
   const [inModifica, setInModifica] = useState(false);
   const [titolo, setTitolo] = useState(modulo.titolo);
+  const [descrizione, setDescrizione] = useState(modulo.descrizione ?? "");
   const [imponibile, setImponibile] = useState(String(modulo.imponibile));
   const [scadenzaIscrizione, setScadenzaIscrizione] = useState(modulo.scadenza_iscrizione);
   const [dataInizio, setDataInizio] = useState(modulo.data_inizio);
@@ -40,6 +43,7 @@ export function ModuloRiga({ modulo }: { modulo: ModuloCorso }) {
     setIsLoading(true);
     const risultato = await aggiornaModulo(modulo.id, {
       titolo,
+      descrizione,
       imponibile: Number(imponibile),
       scadenza_iscrizione: scadenzaIscrizione,
       data_inizio: dataInizio,
@@ -81,6 +85,11 @@ export function ModuloRiga({ modulo }: { modulo: ModuloCorso }) {
     return (
       <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
         <Input value={titolo} onChange={(e) => setTitolo(e.target.value)} placeholder="Titolo modulo" />
+        <Textarea
+          value={descrizione}
+          onChange={(e) => setDescrizione(e.target.value)}
+          placeholder="Descrizione del modulo (facoltativa)"
+        />
         <div className="grid grid-cols-2 gap-3">
           <Input
             type="number"
@@ -144,6 +153,9 @@ export function ModuloRiga({ modulo }: { modulo: ModuloCorso }) {
           </Badge>
           {modulo.iscrizioni_chiuse && <Badge variant="destructive">Iscrizioni chiuse</Badge>}
         </div>
+        {modulo.descrizione && (
+          <p className="text-sm text-muted-foreground mt-1">{modulo.descrizione}</p>
+        )}
         <p className="text-sm text-muted-foreground mt-1">
           {formattaPrezzo(modulo.imponibile)} + IVA · inizia il {formattaData(modulo.data_inizio)} · iscrizioni
           entro il {formattaData(modulo.scadenza_iscrizione)}

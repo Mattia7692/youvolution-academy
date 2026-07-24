@@ -29,6 +29,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 export type ModuloDisponibile = {
   id: string;
   titolo: string;
+  descrizione: string | null;
   imponibile: number;
   scadenza_iscrizione: string;
   data_inizio: string;
@@ -248,6 +249,9 @@ export function Passo1Form({
                         <span className="text-sm font-medium text-foreground">{modulo.titolo}</span>
                         <span className="text-sm font-semibold">{formattaPrezzo(modulo.imponibile)}</span>
                       </div>
+                      {modulo.descrizione && (
+                        <p className="text-sm text-muted-foreground mt-1">{modulo.descrizione}</p>
+                      )}
                       <p className="text-xs text-muted-foreground mt-1">
                         Inizia il {formattaData(modulo.data_inizio)} · iscrizioni entro il{" "}
                         {formattaData(modulo.scadenza_iscrizione)}
@@ -464,10 +468,9 @@ export function Passo1Form({
             <p className="text-sm text-destructive">✕ Codice non valido o scaduto</p>
           )}
           {!codiceStato && earlyBirdAttivo && (
-            <p className="text-sm text-emerald-700">
-              ✓ Early bird attivo fino al {formattaData(cutoffEarlyBird!)}: -{EARLY_BIRD_PERCENTUALE}% applicato
-              automaticamente
-            </p>
+            <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+              Sconto early bird attivo fino al {formattaData(cutoffEarlyBird!)}
+            </span>
           )}
           {!codiceStato && !earlyBirdAttivo && cutoffEarlyBird && (
             <p className="text-xs text-muted-foreground">

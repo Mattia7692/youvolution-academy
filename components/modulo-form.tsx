@@ -6,10 +6,12 @@ import { creaModulo } from "@/app/(autenticato)/admin/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export function ModuloForm({ corsoId }: { corsoId: string }) {
   const [aperto, setAperto] = useState(false);
   const [titolo, setTitolo] = useState("");
+  const [descrizione, setDescrizione] = useState("");
   const [imponibile, setImponibile] = useState("");
   const [scadenzaIscrizione, setScadenzaIscrizione] = useState("");
   const [dataInizio, setDataInizio] = useState("");
@@ -33,6 +35,7 @@ export function ModuloForm({ corsoId }: { corsoId: string }) {
 
     const risultato = await creaModulo(corsoId, {
       titolo,
+      descrizione,
       imponibile: Number(imponibile),
       scadenza_iscrizione: scadenzaIscrizione,
       data_inizio: dataInizio,
@@ -49,6 +52,7 @@ export function ModuloForm({ corsoId }: { corsoId: string }) {
 
     setAperto(false);
     setTitolo("");
+    setDescrizione("");
     setImponibile("");
     setScadenzaIscrizione("");
     setDataInizio("");
@@ -59,6 +63,11 @@ export function ModuloForm({ corsoId }: { corsoId: string }) {
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-dashed border-border p-4 space-y-3">
       <Input value={titolo} onChange={(e) => setTitolo(e.target.value)} placeholder="Titolo modulo" required />
+      <Textarea
+        value={descrizione}
+        onChange={(e) => setDescrizione(e.target.value)}
+        placeholder="Descrizione del modulo (facoltativa)"
+      />
       <div className="grid grid-cols-2 gap-3">
         <Input
           type="number"

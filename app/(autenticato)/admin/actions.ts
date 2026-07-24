@@ -38,6 +38,7 @@ export type DatiCorso = {
 
 export type DatiModulo = {
   titolo: string;
+  descrizione: string;
   imponibile: number;
   scadenza_iscrizione: string; // yyyy-mm-dd
   data_inizio: string; // yyyy-mm-dd
@@ -172,6 +173,7 @@ export async function creaModulo(corsoId: string, dati: DatiModulo) {
   const { error } = await supabase.from("moduli_corso").insert({
     corso_id: corsoId,
     titolo: dati.titolo.trim(),
+    descrizione: dati.descrizione.trim() || null,
     imponibile: dati.imponibile,
     scadenza_iscrizione: dati.scadenza_iscrizione,
     data_inizio: dati.data_inizio,
@@ -193,6 +195,7 @@ export async function aggiornaModulo(moduloId: string, patch: Partial<DatiModulo
 
   const aggiornamento: Record<string, unknown> = {};
   if (patch.titolo !== undefined) aggiornamento.titolo = patch.titolo.trim();
+  if (patch.descrizione !== undefined) aggiornamento.descrizione = patch.descrizione.trim() || null;
   if (patch.imponibile !== undefined) aggiornamento.imponibile = patch.imponibile;
   if (patch.scadenza_iscrizione !== undefined) aggiornamento.scadenza_iscrizione = patch.scadenza_iscrizione;
   if (patch.data_inizio !== undefined) aggiornamento.data_inizio = patch.data_inizio;
