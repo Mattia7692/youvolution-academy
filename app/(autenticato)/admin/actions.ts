@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { richiediAdmin } from "@/lib/roles";
 import { revalidatePath } from "next/cache";
+import { resend, MITTENTE_ACADEMY } from "@/lib/resend";
 
 export async function verificaIscrizione(iscrizioneId: string) {
   const supabase = await createClient();
@@ -783,44 +784,75 @@ export async function eliminaCodiceSconto(id: string) {
 // mover deve poter completare il resto del corso a prezzo agevolato. Il
 // codice e' unico per corso (non per iscrizione/utente, la tabella non lo
 // permette) e viene creato una sola volta: click successivi per altri
-// first mover dello stesso corso restituiscono lo stesso codice da
-// ricomunicare via email.
-export async function generaCodiceFirstMoverPerCorso(corsoId: string) {
+// first mover dello stesso corso riusano lo stesso codice, inviato via
+// email a ciascuno. Se l'invio fallisce ma il codice esiste gia' (o e'
+// stato appena creato), lo restituiamo comunque cosi' l'admin puo' copiarlo
+// e comunicarlo a mano.
+export async function inviaCodiceFirstMover(iscrizioneId: string) {
   const supabase = await createClient();
   const admin = await richiediAdmin(supabase);
   if (!admin) return { ok: false as const, error: "Non autorizzato." };
 
-  const { data: esistente } = await supabase
-    .from("codici_sconto")
-    .select("codice")
-    .eq("corso_id", corsoId)
-    .like("codice", "FIRSTMOVER-%")
+  const { data: iscrizione } = await supabase
+    .from("iscrizioni")
+    .select("corso_id, corsista_id, sconto_tipo")
+    .eq("id", iscrizioneId)
     .maybeSingle();
 
-  if (esistente) return { ok: true as const, codice: esistente.codice as string };
+  if (!iscrizione) return { ok: false as const, error: "Iscrizione non trovata." };
+  if (iscrizione.sconto_tipo !== "first_mover") {
+    return { ok: false as const, error: "Questa iscrizione non ha uno sconto first mover." };
+  }
 
-  const { data: corso } = await supabase
-    .from("corsi")
-    .select("first_mover_percentuale")
-    .eq("id", corsoId)
-    .maybeSingle();
+  const [{ data: corsista }, { data: corso }] = await Promise.all([
+    supabase.from("profiles").select("nome, email").eq("id", iscrizione.corsista_id).maybeSingle(),
+    supabase.from("corsi").select("titolo, first_mover_percentuale").eq("id", iscrizione.corso_id).maybeSingle(),
+  ]);
 
+  if (!corsista?.email) return { ok: false as const, error: "Email del corsista non trovata." };
   if (!corso?.first_mover_percentuale) {
     return { ok: false as const, error: "Questo corso non ha uno sconto first mover configurato." };
   }
 
-  const codice = `FIRSTMOVER-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+  const { data: esistente } = await supabase
+    .from("codici_sconto")
+    .select("codice")
+    .eq("corso_id", iscrizione.corso_id)
+    .like("codice", "FIRSTMOVER-%")
+    .maybeSingle();
 
-  const { error } = await supabase.from("codici_sconto").insert({
-    codice,
-    percentuale: corso.first_mover_percentuale,
-    corso_id: corsoId,
+  let codice = esistente?.codice as string | undefined;
+
+  if (!codice) {
+    codice = `FIRSTMOVER-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+    const { error: erroreInsert } = await supabase.from("codici_sconto").insert({
+      codice,
+      percentuale: corso.first_mover_percentuale,
+      corso_id: iscrizione.corso_id,
+    });
+    if (erroreInsert) return { ok: false as const, error: erroreInsert.message };
+    revalidatePath("/admin/codici-sconto");
+  }
+
+  const { error: erroreEmail } = await resend.emails.send({
+    from: MITTENTE_ACADEMY,
+    to: corsista.email,
+    subject: `Il tuo codice sconto per completare ${corso.titolo}`,
+    html: `<p>Ciao ${corsista.nome ?? ""},</p>
+<p>Come da offerta first mover, ecco il codice sconto per completare l'iscrizione a <strong>${corso.titolo}</strong> con uno sconto del ${corso.first_mover_percentuale}%:</p>
+<p style="font-size:1.4em;font-weight:bold;letter-spacing:1px;">${codice}</p>
+<p>Inseriscilo nel campo "Codice sconto" al Passo 1 dell'iscrizione.</p>`,
   });
 
-  if (error) return { ok: false as const, error: error.message };
+  if (erroreEmail) {
+    return {
+      ok: false as const,
+      error: `Codice pronto ma invio email fallito: ${erroreEmail.message}`,
+      codice,
+    };
+  }
 
-  revalidatePath("/admin/codici-sconto");
-  return { ok: true as const, codice };
+  return { ok: true as const, codice, email: corsista.email };
 }
 
 // ─── Iscrizioni ─────────────────────────────────────────────────────────

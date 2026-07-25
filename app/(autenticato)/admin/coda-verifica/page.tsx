@@ -17,7 +17,7 @@ export default async function CodaVerificaPage() {
   const { data: iscrizioni, error } = await supabase
     .from("iscrizioni")
     .select(
-      "id, stato, totale_snapshot, cro, cro_inserito_at, nota_admin, sconto_tipo, corso_id, corsi(titolo), profiles!corsista_id(nome, cognome, email)",
+      "id, stato, totale_snapshot, cro, cro_inserito_at, nota_admin, sconto_tipo, corsi(titolo), profiles!corsista_id(nome, cognome, email)",
     )
     .in("stato", ["cro_inserito", "cro_da_chiarire"])
     .order("cro_inserito_at", { ascending: true });
@@ -49,7 +49,6 @@ export default async function CodaVerificaPage() {
               <CodaVerificaRiga
                 key={iscrizione.id}
                 iscrizioneId={iscrizione.id}
-                corsoId={iscrizione.corso_id}
                 stato={iscrizione.stato as StatoIscrizione}
                 scontoTipo={iscrizione.sconto_tipo as "nessuno" | "early_bird" | "first_mover" | "codice"}
                 corsoTitolo={corso?.titolo ?? "Corso"}

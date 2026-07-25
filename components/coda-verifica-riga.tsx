@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   verificaIscrizione,
   segnalaIscrizione,
-  generaCodiceFirstMoverPerCorso,
+  inviaCodiceFirstMover,
 } from "@/app/(autenticato)/admin/actions";
 import { StatoBadge, type StatoIscrizione } from "@/components/stato-badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,6 @@ const SFONDO_PER_SCONTO: Record<ScontoTipo, string> = {
 
 export function CodaVerificaRiga({
   iscrizioneId,
-  corsoId,
   stato,
   scontoTipo,
   corsoTitolo,
@@ -32,7 +31,6 @@ export function CodaVerificaRiga({
   corsistaEmail,
 }: {
   iscrizioneId: string;
-  corsoId: string;
   stato: StatoIscrizione;
   scontoTipo: ScontoTipo;
   corsoTitolo: string;
@@ -47,6 +45,7 @@ export function CodaVerificaRiga({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [codiceFirstMover, setCodiceFirstMover] = useState<string | null>(null);
+  const [emailInviata, setEmailInviata] = useState(false);
   const [copiato, setCopiato] = useState(false);
 
   const handleVerifica = async () => {
@@ -57,16 +56,18 @@ export function CodaVerificaRiga({
     if (!risultato.ok) setError(risultato.error);
   };
 
-  const handleGeneraCodice = async () => {
+  const handleInviaCodice = async () => {
     setError(null);
     setIsLoading(true);
-    const risultato = await generaCodiceFirstMoverPerCorso(corsoId);
+    const risultato = await inviaCodiceFirstMover(iscrizioneId);
     setIsLoading(false);
     if (!risultato.ok) {
       setError(risultato.error);
+      if (risultato.codice) setCodiceFirstMover(risultato.codice);
       return;
     }
     setCodiceFirstMover(risultato.codice);
+    setEmailInviata(true);
   };
 
   const handleCopiaCodice = async () => {
@@ -111,7 +112,8 @@ export function CodaVerificaRiga({
       {codiceFirstMover && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-violet-200 bg-violet-100/60 px-3 py-2 text-sm text-violet-900">
           <span>
-            Codice per completare il corso: <span className="font-mono font-semibold">{codiceFirstMover}</span>
+            {emailInviata ? `Email inviata a ${corsistaEmail} · codice` : "Codice per completare il corso"}:{" "}
+            <span className="font-mono font-semibold">{codiceFirstMover}</span>
           </span>
           <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={handleCopiaCodice}>
             {copiato ? "Copiato ✓" : "Copia"}
@@ -154,15 +156,15 @@ export function CodaVerificaRiga({
           >
             Segnala
           </Button>
-          {scontoTipo === "first_mover" && !codiceFirstMover && (
+          {scontoTipo === "first_mover" && !emailInviata && (
             <Button
               size="sm"
               variant="outline"
               className="border-violet-300 text-violet-800 hover:bg-violet-100"
-              onClick={handleGeneraCodice}
+              onClick={handleInviaCodice}
               disabled={isLoading}
             >
-              Genera codice sconto first mover
+              Invia codice sconto first mover
             </Button>
           )}
         </div>
