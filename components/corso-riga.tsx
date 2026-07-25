@@ -276,12 +276,6 @@ export function CorsoRiga({
         </p>
       </div>
       <div className="grid grid-cols-4 gap-2">
-        <Button asChild size="sm" variant="outline" className={bottoneClasse}>
-          <Link href={`/admin/corsi/${corso.id}`}>Gestisci moduli</Link>
-        </Button>
-        <Button asChild size="sm" variant="outline" className={bottoneClasse}>
-          <Link href={`/admin/corsi/${corso.id}/iscritti`}>Iscrizioni</Link>
-        </Button>
         <Button
           size="sm"
           variant="outline"
@@ -289,10 +283,13 @@ export function CorsoRiga({
           onClick={() => setInModifica(true)}
           disabled={isLoading}
         >
-          Modifica
+          Modifica Corso
+        </Button>
+        <Button asChild size="sm" variant="outline" className={bottoneClasse}>
+          <Link href={`/admin/corsi/${corso.id}`}>Gestisci moduli</Link>
         </Button>
         <Button size="sm" variant="outline" className={bottoneClasse} onClick={handleDuplica} disabled={isLoading}>
-          Duplica
+          Duplica Corso
         </Button>
         <Button
           size="sm"
@@ -303,14 +300,8 @@ export function CorsoRiga({
         >
           {corso.attivo ? "Disattiva" : "Attiva"}
         </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className={bottoneClasse}
-          onClick={handleToggleSoldOut}
-          disabled={isLoading}
-        >
-          {corso.sold_out_manuale ? "Rimuovi sold out" : "Segna sold out"}
+        <Button asChild size="sm" variant="outline" className={bottoneClasse}>
+          <Link href={`/admin/corsi/${corso.id}/iscritti`}>Gestisci Iscrizioni</Link>
         </Button>
         <Button
           size="sm"
@@ -319,7 +310,16 @@ export function CorsoRiga({
           onClick={handleToggleIscrizioniChiuse}
           disabled={isLoading}
         >
-          {corso.iscrizioni_chiuse_manuale ? "Riapri iscrizioni" : "Chiudi iscrizioni"}
+          {corso.iscrizioni_chiuse_manuale ? "Riapri Iscrizioni" : "Chiudi Iscrizioni"}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className={bottoneClasse}
+          onClick={handleToggleSoldOut}
+          disabled={isLoading}
+        >
+          {corso.sold_out_manuale ? "Rimuovi Sold Out" : "Segna Sold Out"}
         </Button>
         {confermaEliminazione ? (
           <>
@@ -350,7 +350,7 @@ export function CorsoRiga({
             onClick={() => setConfermaEliminazione(true)}
             disabled={isLoading}
           >
-            Elimina
+            Elimina Corso
           </Button>
         )}
       </div>
