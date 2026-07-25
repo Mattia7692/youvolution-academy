@@ -12,6 +12,20 @@ function formattaData(data: string) {
   );
 }
 
+type ScontoTipo = "nessuno" | "early_bird" | "first_mover" | "codice";
+
+const ETICHETTA_SCONTO: Record<Exclude<ScontoTipo, "nessuno">, string> = {
+  early_bird: "Early bird",
+  first_mover: "First mover",
+  codice: "Codice",
+};
+
+const STILE_SCONTO: Record<Exclude<ScontoTipo, "nessuno">, string> = {
+  early_bird: "bg-emerald-50 text-emerald-800",
+  first_mover: "bg-violet-50 text-violet-800",
+  codice: "bg-blue-50 text-blue-800",
+};
+
 export function IscrittoRiga({
   iscrizioneId,
   stato,
@@ -19,6 +33,10 @@ export function IscrittoRiga({
   cognome,
   email,
   createdAt,
+  scontoTipo,
+  scontoPercentuale,
+  codiceScontoInserito,
+  codiceFirstMoverCorso,
 }: {
   iscrizioneId: string;
   stato: StatoIscrizione;
@@ -26,6 +44,10 @@ export function IscrittoRiga({
   cognome: string | undefined;
   email: string | undefined;
   createdAt: string;
+  scontoTipo: ScontoTipo | null;
+  scontoPercentuale: number | null;
+  codiceScontoInserito: string | null;
+  codiceFirstMoverCorso: string | null;
 }) {
   const [confermaEliminazione, setConfermaEliminazione] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +75,18 @@ export function IscrittoRiga({
           </p>
           <p className="text-sm text-muted-foreground">{email}</p>
           <p className="text-xs text-muted-foreground mt-1">Iscritto il {formattaData(createdAt)}</p>
+          {scontoTipo && scontoTipo !== "nessuno" && (
+            <span
+              className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-xs font-medium mt-1.5 ${STILE_SCONTO[scontoTipo]}`}
+            >
+              {ETICHETTA_SCONTO[scontoTipo]}
+              {scontoPercentuale !== null && ` (-${scontoPercentuale}%)`}
+              {scontoTipo === "codice" && codiceScontoInserito && ` · ${codiceScontoInserito}`}
+              {scontoTipo === "first_mover" &&
+                codiceFirstMoverCorso &&
+                ` · codice inviato: ${codiceFirstMoverCorso}`}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <StatoBadge stato={stato} />

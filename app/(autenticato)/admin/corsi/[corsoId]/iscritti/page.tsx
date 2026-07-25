@@ -25,11 +25,21 @@ export default async function IscrittiCorsoPage({
 
   // iscrizioni ha due FK verso profiles (corsista_id e verificata_da): serve
   // l'hint esplicito, altrimenti PostgREST non sa quale usare.
-  const { data: iscritti, error } = await supabase
-    .from("iscrizioni")
-    .select("id, stato, created_at, profiles!corsista_id(nome, cognome, email)")
-    .eq("corso_id", corsoId)
-    .order("created_at", { ascending: false });
+  const [{ data: iscritti, error }, { data: codiceFirstMover }] = await Promise.all([
+    supabase
+      .from("iscrizioni")
+      .select(
+        "id, stato, created_at, sconto_tipo, sconto_percentuale, codice_sconto_inserito, profiles!corsista_id(nome, cognome, email)",
+      )
+      .eq("corso_id", corsoId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("codici_sconto")
+      .select("codice")
+      .eq("corso_id", corsoId)
+      .like("codice", "FIRSTMOVER-%")
+      .maybeSingle(),
+  ]);
 
   if (error) {
     console.error("[admin/corsi/:id/iscritti] errore nel caricamento iscritti", error);
@@ -72,6 +82,10 @@ export default async function IscrittiCorsoPage({
                   cognome={corsista?.cognome}
                   email={corsista?.email}
                   createdAt={iscrizione.created_at}
+                  scontoTipo={iscrizione.sconto_tipo as "nessuno" | "early_bird" | "first_mover" | "codice" | null}
+                  scontoPercentuale={iscrizione.sconto_percentuale}
+                  codiceScontoInserito={iscrizione.codice_sconto_inserito}
+                  codiceFirstMoverCorso={codiceFirstMover?.codice ?? null}
                 />
               );
             })}
