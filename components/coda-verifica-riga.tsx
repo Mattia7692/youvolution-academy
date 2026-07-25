@@ -19,10 +19,26 @@ const SFONDO_PER_SCONTO: Record<ScontoTipo, string> = {
   nessuno: "border-border bg-card",
 };
 
+const ETICHETTA_SCONTO: Record<ScontoTipo, string> = {
+  first_mover: "First mover",
+  early_bird: "Early bird",
+  codice: "Codice",
+  nessuno: "Nessuno sconto",
+};
+
+const STILE_TAG_SCONTO: Record<ScontoTipo, string> = {
+  first_mover: "bg-violet-100 text-violet-800",
+  early_bird: "bg-emerald-100 text-emerald-800",
+  codice: "bg-blue-100 text-blue-800",
+  nessuno: "bg-muted text-muted-foreground",
+};
+
 export function CodaVerificaRiga({
   iscrizioneId,
   stato,
   scontoTipo,
+  scontoPercentuale,
+  codiceScontoInserito,
   corsoTitolo,
   prezzo,
   cro,
@@ -33,6 +49,8 @@ export function CodaVerificaRiga({
   iscrizioneId: string;
   stato: StatoIscrizione;
   scontoTipo: ScontoTipo;
+  scontoPercentuale: number | null;
+  codiceScontoInserito: string | null;
   corsoTitolo: string;
   prezzo: string;
   cro: string | null;
@@ -106,7 +124,16 @@ export function CodaVerificaRiga({
             <p className="text-sm text-red-700 mt-1">{notaAdmin}</p>
           )}
         </div>
-        <StatoBadge stato={stato} />
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-xs font-medium ${STILE_TAG_SCONTO[scontoTipo]}`}
+          >
+            {ETICHETTA_SCONTO[scontoTipo]}
+            {scontoTipo !== "nessuno" && scontoPercentuale !== null && ` (-${scontoPercentuale}%)`}
+            {scontoTipo === "codice" && codiceScontoInserito && ` · ${codiceScontoInserito}`}
+          </span>
+          <StatoBadge stato={stato} />
+        </div>
       </div>
 
       {codiceFirstMover && (
