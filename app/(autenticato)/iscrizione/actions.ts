@@ -70,7 +70,7 @@ export async function salvaPasso1(corsoId: string, dati: DatiPasso1) {
 
   const { data: corso, error: corsoError } = await supabase
     .from("corsi")
-    .select("id, attivo")
+    .select("id, attivo, sconto_alumni_escluso")
     .eq("id", corsoId)
     .maybeSingle();
 
@@ -207,15 +207,19 @@ export async function salvaPasso1(corsoId: string, dati: DatiPasso1) {
 
   // Alumni FUTURE: almeno un'iscrizione verificata su un corso diverso da
   // questo — mai sullo stesso corso, per evitare che il modulo 1 sblocchi lo
-  // sconto sui moduli successivi dello stesso corso.
-  const { data: iscrizionePassata } = await supabase
-    .from("iscrizioni")
-    .select("id")
-    .eq("corsista_id", user.id)
-    .eq("stato", "verificata")
-    .neq("corso_id", corsoId)
-    .limit(1)
-    .maybeSingle();
+  // sconto sui moduli successivi dello stesso corso. Escluso per i corsi che
+  // hanno gia' un prezzo alumni incorporato nei propri pacchetti (es. Core
+  // Coaching), per non sommare due sconti alumni diversi.
+  const { data: iscrizionePassata } = corso.sconto_alumni_escluso
+    ? { data: null }
+    : await supabase
+        .from("iscrizioni")
+        .select("id")
+        .eq("corsista_id", user.id)
+        .eq("stato", "verificata")
+        .neq("corso_id", corsoId)
+        .limit(1)
+        .maybeSingle();
 
   if (iscrizionePassata) {
     candidati.push({ tipo: "alumni", percentuale: ALUMNI_PERCENTUALE });

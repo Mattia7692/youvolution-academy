@@ -12,7 +12,7 @@ export default async function Passo1Page({
 
   const { data: corso } = await supabase
     .from("corsi")
-    .select("id, titolo, attivo")
+    .select("id, titolo, attivo, sconto_alumni_escluso")
     .eq("id", corsoId)
     .maybeSingle();
 
@@ -54,7 +54,7 @@ export default async function Passo1Page({
   // form mostra subito il tag corretto, senza dover indovinare lato client
   // se il corsista ha gia' un'iscrizione verificata su un altro corso.
   let alumniAttivo = false;
-  if (user) {
+  if (user && !corso.sconto_alumni_escluso) {
     const { data: iscrizionePassata } = await supabase
       .from("iscrizioni")
       .select("id")
