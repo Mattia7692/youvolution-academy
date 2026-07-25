@@ -39,6 +39,8 @@ export type DatiCorso = {
   iscrizioni_chiuse_manuale: boolean;
   early_bird_scadenza: string | null; // yyyy-mm-dd, null = nessun early bird
   early_bird_percentuale: number | null;
+  first_mover_scadenza: string | null; // yyyy-mm-dd, null = nessun first mover
+  first_mover_percentuale: number | null;
 };
 
 function validaEarlyBird(scadenza: string | null, percentuale: number | null): string | null {
@@ -47,6 +49,16 @@ function validaEarlyBird(scadenza: string | null, percentuale: number | null): s
   }
   if (percentuale !== null && !(percentuale > 0 && percentuale <= 100)) {
     return "La percentuale early bird deve essere tra 0 e 100.";
+  }
+  return null;
+}
+
+function validaFirstMover(scadenza: string | null, percentuale: number | null): string | null {
+  if ((scadenza === null) !== (percentuale === null)) {
+    return "Per il first mover servono sia la scadenza che la percentuale, oppure nessuna delle due.";
+  }
+  if (percentuale !== null && !(percentuale > 0 && percentuale <= 100)) {
+    return "La percentuale first mover deve essere tra 0 e 100.";
   }
   return null;
 }
@@ -84,7 +96,14 @@ function validaModulo(dati: DatiModulo): string | null {
 export async function creaCorso(
   datiCorso: Pick<
     DatiCorso,
-    "titolo" | "descrizione" | "calendario" | "metodo_pagamento" | "early_bird_scadenza" | "early_bird_percentuale"
+    | "titolo"
+    | "descrizione"
+    | "calendario"
+    | "metodo_pagamento"
+    | "early_bird_scadenza"
+    | "early_bird_percentuale"
+    | "first_mover_scadenza"
+    | "first_mover_percentuale"
   >,
 ) {
   const supabase = await createClient();
@@ -93,6 +112,9 @@ export async function creaCorso(
 
   const titolo = datiCorso.titolo.trim();
   if (!titolo) return { ok: false as const, error: "Il titolo è obbligatorio." };
+
+  const erroreFirstMover = validaFirstMover(datiCorso.first_mover_scadenza, datiCorso.first_mover_percentuale);
+  if (erroreFirstMover) return { ok: false as const, error: erroreFirstMover };
 
   const erroreEarlyBird = validaEarlyBird(datiCorso.early_bird_scadenza, datiCorso.early_bird_percentuale);
   if (erroreEarlyBird) return { ok: false as const, error: erroreEarlyBird };
@@ -106,6 +128,8 @@ export async function creaCorso(
       metodo_pagamento: datiCorso.metodo_pagamento,
       early_bird_scadenza: datiCorso.early_bird_scadenza,
       early_bird_percentuale: datiCorso.early_bird_percentuale,
+      first_mover_scadenza: datiCorso.first_mover_scadenza,
+      first_mover_percentuale: datiCorso.first_mover_percentuale,
       attivo: false,
     })
     .select("id")
@@ -149,6 +173,14 @@ export async function aggiornaCorso(corsoId: string, patch: Partial<DatiCorso>) 
     }
   }
 
+  if (patch.first_mover_scadenza !== undefined || patch.first_mover_percentuale !== undefined) {
+    const erroreFirstMover = validaFirstMover(
+      patch.first_mover_scadenza ?? null,
+      patch.first_mover_percentuale ?? null,
+    );
+    if (erroreFirstMover) return { ok: false as const, error: erroreFirstMover };
+  }
+
   if (patch.early_bird_scadenza !== undefined || patch.early_bird_percentuale !== undefined) {
     const erroreEarlyBird = validaEarlyBird(
       patch.early_bird_scadenza ?? null,
@@ -170,6 +202,10 @@ export async function aggiornaCorso(corsoId: string, patch: Partial<DatiCorso>) 
   if (patch.early_bird_scadenza !== undefined) aggiornamento.early_bird_scadenza = patch.early_bird_scadenza;
   if (patch.early_bird_percentuale !== undefined) {
     aggiornamento.early_bird_percentuale = patch.early_bird_percentuale;
+  }
+  if (patch.first_mover_scadenza !== undefined) aggiornamento.first_mover_scadenza = patch.first_mover_scadenza;
+  if (patch.first_mover_percentuale !== undefined) {
+    aggiornamento.first_mover_percentuale = patch.first_mover_percentuale;
   }
 
   const { error } = await supabase.from("corsi").update(aggiornamento).eq("id", corsoId);
@@ -193,7 +229,9 @@ export async function duplicaCorso(corsoId: string) {
 
   const { data: corso } = await supabase
     .from("corsi")
-    .select("titolo, descrizione, calendario, metodo_pagamento, early_bird_scadenza, early_bird_percentuale")
+    .select(
+      "titolo, descrizione, calendario, metodo_pagamento, early_bird_scadenza, early_bird_percentuale, first_mover_scadenza, first_mover_percentuale",
+    )
     .eq("id", corsoId)
     .maybeSingle();
 
@@ -222,6 +260,8 @@ export async function duplicaCorso(corsoId: string) {
       metodo_pagamento: corso.metodo_pagamento,
       early_bird_scadenza: corso.early_bird_scadenza,
       early_bird_percentuale: corso.early_bird_percentuale,
+      first_mover_scadenza: corso.first_mover_scadenza,
+      first_mover_percentuale: corso.first_mover_percentuale,
       attivo: false,
     })
     .select("id")
@@ -317,6 +357,7 @@ export async function aggiornaDateNuovaEdizione(
   dati: {
     calendario: string;
     earlyBirdScadenza?: string | null;
+    firstMoverScadenza?: string | null;
     moduli: { id: string; scadenza_iscrizione: string; data_inizio: string }[];
     pacchetti: { id: string; scadenza_iscrizione: string }[];
   },
@@ -344,9 +385,13 @@ export async function aggiornaDateNuovaEdizione(
   if (dati.earlyBirdScadenza !== undefined && !dati.earlyBirdScadenza) {
     return { ok: false as const, error: "Compila la scadenza dell'early bird." };
   }
+  if (dati.firstMoverScadenza !== undefined && !dati.firstMoverScadenza) {
+    return { ok: false as const, error: "Compila la scadenza del first mover." };
+  }
 
   const aggiornamentoCorso: Record<string, unknown> = { calendario: dati.calendario.trim() || null };
   if (dati.earlyBirdScadenza !== undefined) aggiornamentoCorso.early_bird_scadenza = dati.earlyBirdScadenza;
+  if (dati.firstMoverScadenza !== undefined) aggiornamentoCorso.first_mover_scadenza = dati.firstMoverScadenza;
 
   const risultati = await Promise.all([
     supabase.from("corsi").update(aggiornamentoCorso).eq("id", corsoId),
@@ -732,6 +777,50 @@ export async function eliminaCodiceSconto(id: string) {
 
   revalidatePath("/admin/codici-sconto");
   return { ok: true as const };
+}
+
+// Scorciatoia dalla coda di verifica: chi ha comprato il Modulo 1 in first
+// mover deve poter completare il resto del corso a prezzo agevolato. Il
+// codice e' unico per corso (non per iscrizione/utente, la tabella non lo
+// permette) e viene creato una sola volta: click successivi per altri
+// first mover dello stesso corso restituiscono lo stesso codice da
+// ricomunicare via email.
+export async function generaCodiceFirstMoverPerCorso(corsoId: string) {
+  const supabase = await createClient();
+  const admin = await richiediAdmin(supabase);
+  if (!admin) return { ok: false as const, error: "Non autorizzato." };
+
+  const { data: esistente } = await supabase
+    .from("codici_sconto")
+    .select("codice")
+    .eq("corso_id", corsoId)
+    .like("codice", "FIRSTMOVER-%")
+    .maybeSingle();
+
+  if (esistente) return { ok: true as const, codice: esistente.codice as string };
+
+  const { data: corso } = await supabase
+    .from("corsi")
+    .select("first_mover_percentuale")
+    .eq("id", corsoId)
+    .maybeSingle();
+
+  if (!corso?.first_mover_percentuale) {
+    return { ok: false as const, error: "Questo corso non ha uno sconto first mover configurato." };
+  }
+
+  const codice = `FIRSTMOVER-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+
+  const { error } = await supabase.from("codici_sconto").insert({
+    codice,
+    percentuale: corso.first_mover_percentuale,
+    corso_id: corsoId,
+  });
+
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/admin/codici-sconto");
+  return { ok: true as const, codice };
 }
 
 // ─── Iscrizioni ─────────────────────────────────────────────────────────

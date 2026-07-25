@@ -1,14 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { verificaIscrizione, segnalaIscrizione } from "@/app/(autenticato)/admin/actions";
+import {
+  verificaIscrizione,
+  segnalaIscrizione,
+  generaCodiceFirstMoverPerCorso,
+} from "@/app/(autenticato)/admin/actions";
 import { StatoBadge, type StatoIscrizione } from "@/components/stato-badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
+type ScontoTipo = "nessuno" | "early_bird" | "first_mover" | "codice";
+
+const SFONDO_PER_SCONTO: Record<ScontoTipo, string> = {
+  first_mover: "border-violet-200 bg-violet-50",
+  early_bird: "border-emerald-200 bg-emerald-50",
+  codice: "border-blue-200 bg-blue-50",
+  nessuno: "border-border bg-card",
+};
+
 export function CodaVerificaRiga({
   iscrizioneId,
+  corsoId,
   stato,
+  scontoTipo,
   corsoTitolo,
   prezzo,
   cro,
@@ -17,7 +32,9 @@ export function CodaVerificaRiga({
   corsistaEmail,
 }: {
   iscrizioneId: string;
+  corsoId: string;
   stato: StatoIscrizione;
+  scontoTipo: ScontoTipo;
   corsoTitolo: string;
   prezzo: string;
   cro: string | null;
@@ -29,6 +46,8 @@ export function CodaVerificaRiga({
   const [nota, setNota] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [codiceFirstMover, setCodiceFirstMover] = useState<string | null>(null);
+  const [copiato, setCopiato] = useState(false);
 
   const handleVerifica = async () => {
     setError(null);
@@ -36,6 +55,25 @@ export function CodaVerificaRiga({
     const risultato = await verificaIscrizione(iscrizioneId);
     setIsLoading(false);
     if (!risultato.ok) setError(risultato.error);
+  };
+
+  const handleGeneraCodice = async () => {
+    setError(null);
+    setIsLoading(true);
+    const risultato = await generaCodiceFirstMoverPerCorso(corsoId);
+    setIsLoading(false);
+    if (!risultato.ok) {
+      setError(risultato.error);
+      return;
+    }
+    setCodiceFirstMover(risultato.codice);
+  };
+
+  const handleCopiaCodice = async () => {
+    if (!codiceFirstMover) return;
+    await navigator.clipboard.writeText(codiceFirstMover);
+    setCopiato(true);
+    setTimeout(() => setCopiato(false), 2000);
   };
 
   const handleSegnala = async () => {
@@ -52,7 +90,7 @@ export function CodaVerificaRiga({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+    <div className={`rounded-xl border p-5 space-y-3 ${SFONDO_PER_SCONTO[scontoTipo]}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-medium text-foreground">{corsoTitolo}</p>
@@ -69,6 +107,17 @@ export function CodaVerificaRiga({
         </div>
         <StatoBadge stato={stato} />
       </div>
+
+      {codiceFirstMover && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-violet-200 bg-violet-100/60 px-3 py-2 text-sm text-violet-900">
+          <span>
+            Codice per completare il corso: <span className="font-mono font-semibold">{codiceFirstMover}</span>
+          </span>
+          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={handleCopiaCodice}>
+            {copiato ? "Copiato ✓" : "Copia"}
+          </Button>
+        </div>
+      )}
 
       {error && (
         <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
@@ -105,6 +154,17 @@ export function CodaVerificaRiga({
           >
             Segnala
           </Button>
+          {scontoTipo === "first_mover" && !codiceFirstMover && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-violet-300 text-violet-800 hover:bg-violet-100"
+              onClick={handleGeneraCodice}
+              disabled={isLoading}
+            >
+              Genera codice sconto first mover
+            </Button>
+          )}
         </div>
       )}
     </div>

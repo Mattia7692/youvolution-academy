@@ -27,6 +27,8 @@ export type Corso = {
   iscrizioni_chiuse_manuale: boolean;
   early_bird_scadenza: string | null;
   early_bird_percentuale: number | null;
+  first_mover_scadenza: string | null;
+  first_mover_percentuale: number | null;
 };
 
 function riepilogoPrezzo(moduli: ModuloCorso[], pacchetti: PacchettoCorso[]) {
@@ -60,6 +62,11 @@ export function CorsoRiga({
   const [descrizione, setDescrizione] = useState(corso.descrizione ?? "");
   const [calendario, setCalendario] = useState(corso.calendario ?? "");
   const [metodoPagamento, setMetodoPagamento] = useState<MetodoPagamento>(corso.metodo_pagamento);
+  const [firstMoverAttivo, setFirstMoverAttivo] = useState(corso.first_mover_scadenza !== null);
+  const [firstMoverScadenza, setFirstMoverScadenza] = useState(corso.first_mover_scadenza ?? "");
+  const [firstMoverPercentuale, setFirstMoverPercentuale] = useState(
+    corso.first_mover_percentuale === null ? "" : String(corso.first_mover_percentuale),
+  );
   const [earlyBirdAttivo, setEarlyBirdAttivo] = useState(corso.early_bird_scadenza !== null);
   const [earlyBirdScadenza, setEarlyBirdScadenza] = useState(corso.early_bird_scadenza ?? "");
   const [earlyBirdPercentuale, setEarlyBirdPercentuale] = useState(
@@ -94,6 +101,8 @@ export function CorsoRiga({
       descrizione,
       calendario,
       metodo_pagamento: metodoPagamento,
+      first_mover_scadenza: firstMoverAttivo ? firstMoverScadenza : null,
+      first_mover_percentuale: firstMoverAttivo ? Number(firstMoverPercentuale) : null,
       early_bird_scadenza: earlyBirdAttivo ? earlyBirdScadenza : null,
       early_bird_percentuale: earlyBirdAttivo ? Number(earlyBirdPercentuale) : null,
     });
@@ -193,6 +202,35 @@ export function CorsoRiga({
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={firstMoverAttivo} onCheckedChange={(v) => setFirstMoverAttivo(v === true)} />
+            Offri uno sconto first mover per questo corso
+          </label>
+          {firstMoverAttivo && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">Scade il</Label>
+                <Input
+                  type="date"
+                  value={firstMoverScadenza}
+                  onChange={(e) => setFirstMoverScadenza(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">Sconto %</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={firstMoverPercentuale}
+                  onChange={(e) => setFirstMoverPercentuale(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="flex items-center gap-2 text-sm">
             <Checkbox checked={earlyBirdAttivo} onCheckedChange={(v) => setEarlyBirdAttivo(v === true)} />
             Offri uno sconto early bird per questo corso
           </label>
@@ -270,6 +308,9 @@ export function CorsoRiga({
         <p className="text-sm text-muted-foreground mt-1">
           {riepilogoPrezzo(moduli, pacchetti)} · {iscritti} iscritti verificati · bonifico su{" "}
           {METODI_PAGAMENTO[corso.metodo_pagamento].etichetta}
+          {corso.first_mover_scadenza !== null && (
+            <> · first mover {corso.first_mover_percentuale}% fino al {formattaData(corso.first_mover_scadenza)}</>
+          )}
           {corso.early_bird_scadenza !== null && (
             <> · early bird {corso.early_bird_percentuale}% fino al {formattaData(corso.early_bird_scadenza)}</>
           )}
@@ -300,7 +341,12 @@ export function CorsoRiga({
         >
           {corso.attivo ? "Disattiva" : "Attiva"}
         </Button>
-        <Button asChild size="sm" variant="outline" className={bottoneClasse}>
+        <Button
+          asChild
+          size="sm"
+          variant="outline"
+          className={`${bottoneClasse} bg-blue-50 border-blue-200 text-blue-900 hover:bg-blue-100`}
+        >
           <Link href={`/admin/corsi/${corso.id}/iscritti`}>Gestisci Iscrizioni</Link>
         </Button>
         <Button

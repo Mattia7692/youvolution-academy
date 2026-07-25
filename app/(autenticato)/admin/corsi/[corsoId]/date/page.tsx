@@ -16,7 +16,9 @@ export default async function DateNuovaEdizionePage({
 
   const { data: corso } = await supabase
     .from("corsi")
-    .select("id, titolo, calendario, early_bird_scadenza, early_bird_percentuale")
+    .select(
+      "id, titolo, calendario, early_bird_scadenza, early_bird_percentuale, first_mover_scadenza, first_mover_percentuale",
+    )
     .eq("id", corsoId)
     .maybeSingle();
 
@@ -49,6 +51,8 @@ export default async function DateNuovaEdizionePage({
         calendarioIniziale={corso.calendario ?? ""}
         earlyBirdScadenzaIniziale={corso.early_bird_scadenza}
         earlyBirdPercentuale={corso.early_bird_percentuale}
+        firstMoverScadenzaIniziale={corso.first_mover_scadenza}
+        firstMoverPercentuale={corso.first_mover_percentuale}
         moduli={moduli ?? []}
         pacchetti={pacchetti ?? []}
       />

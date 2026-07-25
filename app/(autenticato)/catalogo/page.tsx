@@ -16,7 +16,7 @@ export default async function CatalogoPage() {
     supabase
       .from("corsi")
       .select(
-        "id, titolo, descrizione, calendario, sold_out_manuale, iscrizioni_chiuse_manuale, early_bird_scadenza, early_bird_percentuale",
+        "id, titolo, descrizione, calendario, sold_out_manuale, iscrizioni_chiuse_manuale, early_bird_scadenza, early_bird_percentuale, first_mover_scadenza, first_mover_percentuale",
       )
       .eq("attivo", true)
       .order("created_at", { ascending: true }),
@@ -189,10 +189,17 @@ export default async function CatalogoPage() {
                       <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{corso.calendario}</p>
                     </div>
                   )}
-                  {corso.early_bird_scadenza !== null && oggi <= corso.early_bird_scadenza && (
+                  {corso.first_mover_scadenza !== null && oggi <= corso.first_mover_scadenza ? (
                     <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                      Sconto early bird attivo (-{corso.early_bird_percentuale}%)
+                      Sconto first mover attivo (-{corso.first_mover_percentuale}%)
                     </span>
+                  ) : (
+                    corso.early_bird_scadenza !== null &&
+                    oggi <= corso.early_bird_scadenza && (
+                      <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                        Sconto early bird attivo (-{corso.early_bird_percentuale}%)
+                      </span>
+                    )
                   )}
                   {inSospeso && (
                     <p className="text-xs font-medium text-orange-700 dark:text-orange-400">

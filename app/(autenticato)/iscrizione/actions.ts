@@ -70,7 +70,7 @@ export async function salvaPasso1(corsoId: string, dati: DatiPasso1) {
 
   const { data: corso, error: corsoError } = await supabase
     .from("corsi")
-    .select("id, attivo, early_bird_scadenza, early_bird_percentuale")
+    .select("id, attivo, early_bird_scadenza, early_bird_percentuale, first_mover_scadenza, first_mover_percentuale")
     .eq("id", corsoId)
     .maybeSingle();
 
@@ -169,9 +169,10 @@ export async function salvaPasso1(corsoId: string, dati: DatiPasso1) {
     for (const id of moduloIdsDaValidare) moduloIdsFinali.add(id);
   }
 
-  // Sconto non cumulabile: un codice valido sostituisce l'early bird
-  // automatico, non si sommano mai.
-  let scontoTipo: "nessuno" | "early_bird" | "codice" = "nessuno";
+  // Sconto non cumulabile: un codice valido ha sempre priorita', altrimenti
+  // vale la finestra automatica piu' vantaggiosa/temporalmente prima
+  // (first mover prima di early bird), mai insieme.
+  let scontoTipo: "nessuno" | "early_bird" | "first_mover" | "codice" = "nessuno";
   let scontoPercentuale = 0;
   const codiceInserito = dati.codiceSconto.trim();
 
@@ -185,6 +186,9 @@ export async function salvaPasso1(corsoId: string, dati: DatiPasso1) {
     }
     scontoTipo = "codice";
     scontoPercentuale = percentuale;
+  } else if (corso.first_mover_scadenza && oggi <= corso.first_mover_scadenza) {
+    scontoTipo = "first_mover";
+    scontoPercentuale = corso.first_mover_percentuale!;
   } else if (corso.early_bird_scadenza && oggi <= corso.early_bird_scadenza) {
     scontoTipo = "early_bird";
     scontoPercentuale = corso.early_bird_percentuale!;

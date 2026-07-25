@@ -16,6 +16,9 @@ export function CorsoForm() {
   const [descrizione, setDescrizione] = useState("");
   const [calendario, setCalendario] = useState("");
   const [metodoPagamento, setMetodoPagamento] = useState<"allianz" | "fineco">("allianz");
+  const [firstMoverAttivo, setFirstMoverAttivo] = useState(false);
+  const [firstMoverScadenza, setFirstMoverScadenza] = useState("");
+  const [firstMoverPercentuale, setFirstMoverPercentuale] = useState("");
   const [earlyBirdAttivo, setEarlyBirdAttivo] = useState(false);
   const [earlyBirdScadenza, setEarlyBirdScadenza] = useState("");
   const [earlyBirdPercentuale, setEarlyBirdPercentuale] = useState("");
@@ -33,6 +36,8 @@ export function CorsoForm() {
       descrizione,
       calendario,
       metodo_pagamento: metodoPagamento,
+      first_mover_scadenza: firstMoverAttivo ? firstMoverScadenza : null,
+      first_mover_percentuale: firstMoverAttivo ? Number(firstMoverPercentuale) : null,
       early_bird_scadenza: earlyBirdAttivo ? earlyBirdScadenza : null,
       early_bird_percentuale: earlyBirdAttivo ? Number(earlyBirdPercentuale) : null,
     });
@@ -90,6 +95,49 @@ export function CorsoForm() {
             </RadioGroup>
             <p className="text-xs text-muted-foreground">
               Determina quali coordinate bancarie vede il corsista al passo 2 dell&apos;iscrizione.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={firstMoverAttivo} onCheckedChange={(v) => setFirstMoverAttivo(v === true)} />
+              Offri uno sconto first mover per questo corso
+            </label>
+            {firstMoverAttivo && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="first_mover_scadenza" className="text-xs text-muted-foreground">
+                    Scade il
+                  </Label>
+                  <Input
+                    id="first_mover_scadenza"
+                    type="date"
+                    required
+                    value={firstMoverScadenza}
+                    onChange={(e) => setFirstMoverScadenza(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="first_mover_percentuale" className="text-xs text-muted-foreground">
+                    Sconto %
+                  </Label>
+                  <Input
+                    id="first_mover_percentuale"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    required
+                    value={firstMoverPercentuale}
+                    onChange={(e) => setFirstMoverPercentuale(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Finestra precedente all&apos;early bird (non cumulabile). Chi acquista in questa
+              finestra puo&apos; poi ricevere un codice sconto per completare il corso a prezzo
+              agevolato dalla coda di verifica iscrizioni.
             </p>
           </div>
 

@@ -12,7 +12,9 @@ export default async function Passo1Page({
 
   const { data: corso } = await supabase
     .from("corsi")
-    .select("id, titolo, attivo, early_bird_scadenza, early_bird_percentuale")
+    .select(
+      "id, titolo, attivo, early_bird_scadenza, early_bird_percentuale, first_mover_scadenza, first_mover_percentuale",
+    )
     .eq("id", corsoId)
     .maybeSingle();
 
@@ -114,6 +116,8 @@ export default async function Passo1Page({
         pacchetti={pacchettiConModuli}
         earlyBirdScadenza={corso.early_bird_scadenza}
         earlyBirdPercentuale={corso.early_bird_percentuale}
+        firstMoverScadenza={corso.first_mover_scadenza}
+        firstMoverPercentuale={corso.first_mover_percentuale}
       />
     </div>
   );

@@ -86,21 +86,29 @@ export function Passo1Form({
   pacchetti,
   earlyBirdScadenza,
   earlyBirdPercentuale,
+  firstMoverScadenza,
+  firstMoverPercentuale,
 }: {
   corsoId: string;
   moduli: ModuloDisponibile[];
   pacchetti: PacchettoDisponibile[];
   earlyBirdScadenza: string | null;
   earlyBirdPercentuale: number | null;
+  firstMoverScadenza: string | null;
+  firstMoverPercentuale: number | null;
 }) {
   const router = useRouter();
   const oggi = oggiISO();
 
-  // L'early bird e' impostato dall'admin in fase di creazione/modifica del
-  // corso (data + percentuale) — vale per l'intero corso, non dipende da
-  // quali moduli il corsista sceglie di acquistare in questa iscrizione.
+  // Early bird e first mover sono impostati dall'admin in fase di
+  // creazione/modifica del corso (data + percentuale) — valgono per
+  // l'intero corso, non dipendono da quali moduli il corsista sceglie di
+  // acquistare in questa iscrizione. First mover, se attivo, ha sempre
+  // precedenza (finestra piu' precoce dell'early bird).
   const cutoffEarlyBird = earlyBirdScadenza;
   const earlyBirdAttivo = !!cutoffEarlyBird && oggi <= cutoffEarlyBird;
+  const cutoffFirstMover = firstMoverScadenza;
+  const firstMoverAttivo = !!cutoffFirstMover && oggi <= cutoffFirstMover;
 
   const [moduloIdsSelezionati, setModuloIdsSelezionati] = useState<string[]>([]);
   const [pacchettoSelezionato, setPacchettoSelezionato] = useState<string | null>(null);
@@ -186,13 +194,21 @@ export function Passo1Form({
   const imponibile = righeSelezionate.reduce((somma, r) => somma + r.imponibile, 0);
 
   const scontoPercentuale =
-    codiceStato?.tipo === "ok" ? codiceStato.percentuale : earlyBirdAttivo ? earlyBirdPercentuale! : 0;
+    codiceStato?.tipo === "ok"
+      ? codiceStato.percentuale
+      : firstMoverAttivo
+        ? firstMoverPercentuale!
+        : earlyBirdAttivo
+          ? earlyBirdPercentuale!
+          : 0;
   const scontoEtichetta =
     codiceStato?.tipo === "ok"
       ? `Codice ${codiceSconto.trim().toUpperCase()} (-${codiceStato.percentuale}%)`
-      : earlyBirdAttivo
-        ? `Early bird (-${earlyBirdPercentuale}%)`
-        : null;
+      : firstMoverAttivo
+        ? `First mover (-${firstMoverPercentuale}%)`
+        : earlyBirdAttivo
+          ? `Early bird (-${earlyBirdPercentuale}%)`
+          : null;
 
   const prezzo = scomponiPrezzo(imponibile, scontoPercentuale);
 
@@ -399,7 +415,7 @@ export function Passo1Form({
           <div>
             <h2 className="font-medium text-foreground">Codice sconto</h2>
             <p className="text-sm text-muted-foreground">
-              Se hai ricevuto un codice promozionale, inseriscilo qui. Non cumulabile con l&apos;early bird.
+              Se hai ricevuto un codice promozionale, inseriscilo qui. Non cumulabile con first mover/early bird.
             </p>
           </div>
           <div className="flex gap-2">
@@ -423,18 +439,28 @@ export function Passo1Form({
           {codiceStato?.tipo === "errore" && (
             <p className="text-sm text-destructive">✕ Codice non valido o scaduto</p>
           )}
-          {!codiceStato && earlyBirdAttivo && (
+          {!codiceStato && firstMoverAttivo && (
+            <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+              Sconto first mover attivo fino al {formattaData(cutoffFirstMover!)}
+            </span>
+          )}
+          {!codiceStato && !firstMoverAttivo && cutoffFirstMover && (
+            <p className="text-xs text-muted-foreground">
+              First mover scaduto il {formattaData(cutoffFirstMover)}.
+            </p>
+          )}
+          {!codiceStato && !firstMoverAttivo && earlyBirdAttivo && (
             <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
               Sconto early bird attivo fino al {formattaData(cutoffEarlyBird!)}
             </span>
           )}
-          {!codiceStato && !earlyBirdAttivo && cutoffEarlyBird && (
+          {!codiceStato && !firstMoverAttivo && !earlyBirdAttivo && cutoffEarlyBird && (
             <p className="text-xs text-muted-foreground">
               Early bird scaduto il {formattaData(cutoffEarlyBird)}.
             </p>
           )}
           <p className="text-xs text-muted-foreground">
-            Gli sconti non sono cumulabili: si applica sempre e solo uno tra codice ed early bird.
+            Gli sconti non sono cumulabili: si applica sempre e solo uno tra codice, first mover ed early bird.
           </p>
         </div>
 

@@ -17,6 +17,8 @@ export function DateNuovaEdizioneForm({
   calendarioIniziale,
   earlyBirdScadenzaIniziale,
   earlyBirdPercentuale,
+  firstMoverScadenzaIniziale,
+  firstMoverPercentuale,
   moduli,
   pacchetti,
 }: {
@@ -24,11 +26,14 @@ export function DateNuovaEdizioneForm({
   calendarioIniziale: string;
   earlyBirdScadenzaIniziale: string | null;
   earlyBirdPercentuale: number | null;
+  firstMoverScadenzaIniziale: string | null;
+  firstMoverPercentuale: number | null;
   moduli: ModuloData[];
   pacchetti: PacchettoData[];
 }) {
   const [calendario, setCalendario] = useState(calendarioIniziale);
   const [earlyBirdScadenza, setEarlyBirdScadenza] = useState(earlyBirdScadenzaIniziale ?? "");
+  const [firstMoverScadenza, setFirstMoverScadenza] = useState(firstMoverScadenzaIniziale ?? "");
   const [moduliState, setModuliState] = useState(moduli);
   const [pacchettiState, setPacchettiState] = useState(pacchetti);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +56,7 @@ export function DateNuovaEdizioneForm({
     const risultato = await aggiornaDateNuovaEdizione(corsoId, {
       calendario,
       earlyBirdScadenza: earlyBirdPercentuale !== null ? earlyBirdScadenza : undefined,
+      firstMoverScadenza: firstMoverPercentuale !== null ? firstMoverScadenza : undefined,
       moduli: moduliState.map(({ id, scadenza_iscrizione, data_inizio }) => ({
         id,
         scadenza_iscrizione,
@@ -71,6 +77,25 @@ export function DateNuovaEdizioneForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {firstMoverPercentuale !== null && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">First mover (-{firstMoverPercentuale}%)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-1 max-w-[200px]">
+              <Label className="text-xs text-muted-foreground">Scadenza</Label>
+              <Input
+                type="date"
+                required
+                value={firstMoverScadenza}
+                onChange={(e) => setFirstMoverScadenza(e.target.value)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {earlyBirdPercentuale !== null && (
         <Card>
           <CardHeader>
