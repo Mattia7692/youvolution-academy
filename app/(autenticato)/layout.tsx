@@ -65,6 +65,7 @@ export default async function AutenticatoLayout({
         badge: coda ?? 0,
         gruppo: "ISCRIZIONI",
       },
+      { href: "/admin/iscritti", etichetta: "Iscritti", gruppo: "ISCRIZIONI" },
       { href: "/admin/utenti", etichetta: "Gestione utenti", gruppo: "SISTEMA" },
       { href: "/admin/informazioni", etichetta: "Informazioni", gruppo: "SISTEMA" },
     ];

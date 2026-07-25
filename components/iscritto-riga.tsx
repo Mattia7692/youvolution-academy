@@ -37,6 +37,7 @@ export function IscrittoRiga({
   scontoPercentuale,
   codiceScontoInserito,
   codiceFirstMoverCorso,
+  corsoTitolo,
 }: {
   iscrizioneId: string;
   stato: StatoIscrizione;
@@ -48,6 +49,7 @@ export function IscrittoRiga({
   scontoPercentuale: number | null;
   codiceScontoInserito: string | null;
   codiceFirstMoverCorso: string | null;
+  corsoTitolo?: string;
 }) {
   const [confermaEliminazione, setConfermaEliminazione] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +72,7 @@ export function IscrittoRiga({
     <div className="rounded-xl border border-border bg-card p-5 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
+          {corsoTitolo && <p className="text-xs font-semibold text-muted-foreground">{corsoTitolo}</p>}
           <p className="font-medium text-foreground">
             {nome} {cognome}
           </p>
