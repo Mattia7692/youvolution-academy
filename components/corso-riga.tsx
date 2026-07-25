@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { formattaPrezzo } from "@/lib/prezzo";
+import { Checkbox } from "@/components/ui/checkbox";
+import { formattaData, formattaPrezzo } from "@/lib/prezzo";
 import { METODI_PAGAMENTO, type MetodoPagamento } from "@/lib/pagamento";
 import type { ModuloCorso } from "@/components/modulo-riga";
 import type { PacchettoCorso } from "@/components/pacchetto-riga";
@@ -24,6 +25,8 @@ export type Corso = {
   attivo: boolean;
   sold_out_manuale: boolean;
   iscrizioni_chiuse_manuale: boolean;
+  early_bird_scadenza: string | null;
+  early_bird_percentuale: number | null;
 };
 
 function riepilogoPrezzo(moduli: ModuloCorso[], pacchetti: PacchettoCorso[]) {
@@ -57,6 +60,11 @@ export function CorsoRiga({
   const [descrizione, setDescrizione] = useState(corso.descrizione ?? "");
   const [calendario, setCalendario] = useState(corso.calendario ?? "");
   const [metodoPagamento, setMetodoPagamento] = useState<MetodoPagamento>(corso.metodo_pagamento);
+  const [earlyBirdAttivo, setEarlyBirdAttivo] = useState(corso.early_bird_scadenza !== null);
+  const [earlyBirdScadenza, setEarlyBirdScadenza] = useState(corso.early_bird_scadenza ?? "");
+  const [earlyBirdPercentuale, setEarlyBirdPercentuale] = useState(
+    corso.early_bird_percentuale === null ? "" : String(corso.early_bird_percentuale),
+  );
   const [confermaEliminazione, setConfermaEliminazione] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -86,6 +94,8 @@ export function CorsoRiga({
       descrizione,
       calendario,
       metodo_pagamento: metodoPagamento,
+      early_bird_scadenza: earlyBirdAttivo ? earlyBirdScadenza : null,
+      early_bird_percentuale: earlyBirdAttivo ? Number(earlyBirdPercentuale) : null,
     });
     setIsLoading(false);
     if (!risultato.ok) {
@@ -181,6 +191,35 @@ export function CorsoRiga({
             </div>
           </RadioGroup>
         </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={earlyBirdAttivo} onCheckedChange={(v) => setEarlyBirdAttivo(v === true)} />
+            Offri uno sconto early bird per questo corso
+          </label>
+          {earlyBirdAttivo && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">Scade il</Label>
+                <Input
+                  type="date"
+                  value={earlyBirdScadenza}
+                  onChange={(e) => setEarlyBirdScadenza(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">Sconto %</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={earlyBirdPercentuale}
+                  onChange={(e) => setEarlyBirdPercentuale(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+        </div>
         {error && (
           <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
             {error}
@@ -231,6 +270,9 @@ export function CorsoRiga({
         <p className="text-sm text-muted-foreground mt-1">
           {riepilogoPrezzo(moduli, pacchetti)} · {iscritti} iscritti verificati · bonifico su{" "}
           {METODI_PAGAMENTO[corso.metodo_pagamento].etichetta}
+          {corso.early_bird_scadenza !== null && (
+            <> · early bird {corso.early_bird_percentuale}% fino al {formattaData(corso.early_bird_scadenza)}</>
+          )}
         </p>
       </div>
       <div className="grid grid-cols-4 gap-2">

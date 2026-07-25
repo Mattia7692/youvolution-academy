@@ -37,7 +37,19 @@ export type DatiCorso = {
   attivo: boolean;
   sold_out_manuale: boolean;
   iscrizioni_chiuse_manuale: boolean;
+  early_bird_scadenza: string | null; // yyyy-mm-dd, null = nessun early bird
+  early_bird_percentuale: number | null;
 };
+
+function validaEarlyBird(scadenza: string | null, percentuale: number | null): string | null {
+  if ((scadenza === null) !== (percentuale === null)) {
+    return "Per l'early bird servono sia la scadenza che la percentuale, oppure nessuna delle due.";
+  }
+  if (percentuale !== null && !(percentuale > 0 && percentuale <= 100)) {
+    return "La percentuale early bird deve essere tra 0 e 100.";
+  }
+  return null;
+}
 
 export type DatiModulo = {
   titolo: string;
@@ -70,7 +82,10 @@ function validaModulo(dati: DatiModulo): string | null {
 // i moduli (anche un unico modulo, per un corso "semplice") si aggiungono
 // dopo dal dettaglio del corso.
 export async function creaCorso(
-  datiCorso: Pick<DatiCorso, "titolo" | "descrizione" | "calendario" | "metodo_pagamento">,
+  datiCorso: Pick<
+    DatiCorso,
+    "titolo" | "descrizione" | "calendario" | "metodo_pagamento" | "early_bird_scadenza" | "early_bird_percentuale"
+  >,
 ) {
   const supabase = await createClient();
   const admin = await richiediAdmin(supabase);
@@ -79,6 +94,9 @@ export async function creaCorso(
   const titolo = datiCorso.titolo.trim();
   if (!titolo) return { ok: false as const, error: "Il titolo è obbligatorio." };
 
+  const erroreEarlyBird = validaEarlyBird(datiCorso.early_bird_scadenza, datiCorso.early_bird_percentuale);
+  if (erroreEarlyBird) return { ok: false as const, error: erroreEarlyBird };
+
   const { data: corso, error: corsoError } = await supabase
     .from("corsi")
     .insert({
@@ -86,6 +104,8 @@ export async function creaCorso(
       descrizione: datiCorso.descrizione.trim() || null,
       calendario: datiCorso.calendario.trim() || null,
       metodo_pagamento: datiCorso.metodo_pagamento,
+      early_bird_scadenza: datiCorso.early_bird_scadenza,
+      early_bird_percentuale: datiCorso.early_bird_percentuale,
       attivo: false,
     })
     .select("id")
@@ -129,6 +149,14 @@ export async function aggiornaCorso(corsoId: string, patch: Partial<DatiCorso>) 
     }
   }
 
+  if (patch.early_bird_scadenza !== undefined || patch.early_bird_percentuale !== undefined) {
+    const erroreEarlyBird = validaEarlyBird(
+      patch.early_bird_scadenza ?? null,
+      patch.early_bird_percentuale ?? null,
+    );
+    if (erroreEarlyBird) return { ok: false as const, error: erroreEarlyBird };
+  }
+
   const aggiornamento: Record<string, unknown> = {};
   if (patch.titolo !== undefined) aggiornamento.titolo = patch.titolo.trim();
   if (patch.descrizione !== undefined) aggiornamento.descrizione = patch.descrizione.trim() || null;
@@ -138,6 +166,10 @@ export async function aggiornaCorso(corsoId: string, patch: Partial<DatiCorso>) 
   if (patch.sold_out_manuale !== undefined) aggiornamento.sold_out_manuale = patch.sold_out_manuale;
   if (patch.iscrizioni_chiuse_manuale !== undefined) {
     aggiornamento.iscrizioni_chiuse_manuale = patch.iscrizioni_chiuse_manuale;
+  }
+  if (patch.early_bird_scadenza !== undefined) aggiornamento.early_bird_scadenza = patch.early_bird_scadenza;
+  if (patch.early_bird_percentuale !== undefined) {
+    aggiornamento.early_bird_percentuale = patch.early_bird_percentuale;
   }
 
   const { error } = await supabase.from("corsi").update(aggiornamento).eq("id", corsoId);
@@ -161,7 +193,7 @@ export async function duplicaCorso(corsoId: string) {
 
   const { data: corso } = await supabase
     .from("corsi")
-    .select("titolo, descrizione, calendario, metodo_pagamento")
+    .select("titolo, descrizione, calendario, metodo_pagamento, early_bird_scadenza, early_bird_percentuale")
     .eq("id", corsoId)
     .maybeSingle();
 
@@ -188,6 +220,8 @@ export async function duplicaCorso(corsoId: string) {
       descrizione: corso.descrizione,
       calendario: corso.calendario,
       metodo_pagamento: corso.metodo_pagamento,
+      early_bird_scadenza: corso.early_bird_scadenza,
+      early_bird_percentuale: corso.early_bird_percentuale,
       attivo: false,
     })
     .select("id")
@@ -282,6 +316,7 @@ export async function aggiornaDateNuovaEdizione(
   corsoId: string,
   dati: {
     calendario: string;
+    earlyBirdScadenza?: string | null;
     moduli: { id: string; scadenza_iscrizione: string; data_inizio: string }[];
     pacchetti: { id: string; scadenza_iscrizione: string }[];
   },
@@ -306,12 +341,15 @@ export async function aggiornaDateNuovaEdizione(
       return { ok: false as const, error: "Compila tutte le date dei pacchetti." };
     }
   }
+  if (dati.earlyBirdScadenza !== undefined && !dati.earlyBirdScadenza) {
+    return { ok: false as const, error: "Compila la scadenza dell'early bird." };
+  }
+
+  const aggiornamentoCorso: Record<string, unknown> = { calendario: dati.calendario.trim() || null };
+  if (dati.earlyBirdScadenza !== undefined) aggiornamentoCorso.early_bird_scadenza = dati.earlyBirdScadenza;
 
   const risultati = await Promise.all([
-    supabase
-      .from("corsi")
-      .update({ calendario: dati.calendario.trim() || null })
-      .eq("id", corsoId),
+    supabase.from("corsi").update(aggiornamentoCorso).eq("id", corsoId),
     ...dati.moduli.map((m) =>
       supabase
         .from("moduli_corso")

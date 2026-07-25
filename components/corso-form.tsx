@@ -9,12 +9,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export function CorsoForm() {
   const [titolo, setTitolo] = useState("");
   const [descrizione, setDescrizione] = useState("");
   const [calendario, setCalendario] = useState("");
   const [metodoPagamento, setMetodoPagamento] = useState<"allianz" | "fineco">("allianz");
+  const [earlyBirdAttivo, setEarlyBirdAttivo] = useState(false);
+  const [earlyBirdScadenza, setEarlyBirdScadenza] = useState("");
+  const [earlyBirdPercentuale, setEarlyBirdPercentuale] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -24,7 +28,14 @@ export function CorsoForm() {
     setError(null);
     setIsLoading(true);
 
-    const risultato = await creaCorso({ titolo, descrizione, calendario, metodo_pagamento: metodoPagamento });
+    const risultato = await creaCorso({
+      titolo,
+      descrizione,
+      calendario,
+      metodo_pagamento: metodoPagamento,
+      early_bird_scadenza: earlyBirdAttivo ? earlyBirdScadenza : null,
+      early_bird_percentuale: earlyBirdAttivo ? Number(earlyBirdPercentuale) : null,
+    });
 
     setIsLoading(false);
 
@@ -79,6 +90,49 @@ export function CorsoForm() {
             </RadioGroup>
             <p className="text-xs text-muted-foreground">
               Determina quali coordinate bancarie vede il corsista al passo 2 dell&apos;iscrizione.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={earlyBirdAttivo} onCheckedChange={(v) => setEarlyBirdAttivo(v === true)} />
+              Offri uno sconto early bird per questo corso
+            </label>
+            {earlyBirdAttivo && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="early_bird_scadenza" className="text-xs text-muted-foreground">
+                    Scade il
+                  </Label>
+                  <Input
+                    id="early_bird_scadenza"
+                    type="date"
+                    required
+                    value={earlyBirdScadenza}
+                    onChange={(e) => setEarlyBirdScadenza(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="early_bird_percentuale" className="text-xs text-muted-foreground">
+                    Sconto %
+                  </Label>
+                  <Input
+                    id="early_bird_percentuale"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    required
+                    value={earlyBirdPercentuale}
+                    onChange={(e) => setEarlyBirdPercentuale(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Vale per l&apos;intero corso (tutti i moduli e i pacchetti), non per singolo modulo. Se i
+              pacchetti del corso hanno gia' un prezzo early bird incorporato, lascia questo
+              disattivato per non scontare due volte.
             </p>
           </div>
 

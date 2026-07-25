@@ -15,15 +15,20 @@ type PacchettoData = { id: string; titolo: string; scadenza_iscrizione: string }
 export function DateNuovaEdizioneForm({
   corsoId,
   calendarioIniziale,
+  earlyBirdScadenzaIniziale,
+  earlyBirdPercentuale,
   moduli,
   pacchetti,
 }: {
   corsoId: string;
   calendarioIniziale: string;
+  earlyBirdScadenzaIniziale: string | null;
+  earlyBirdPercentuale: number | null;
   moduli: ModuloData[];
   pacchetti: PacchettoData[];
 }) {
   const [calendario, setCalendario] = useState(calendarioIniziale);
+  const [earlyBirdScadenza, setEarlyBirdScadenza] = useState(earlyBirdScadenzaIniziale ?? "");
   const [moduliState, setModuliState] = useState(moduli);
   const [pacchettiState, setPacchettiState] = useState(pacchetti);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +50,7 @@ export function DateNuovaEdizioneForm({
 
     const risultato = await aggiornaDateNuovaEdizione(corsoId, {
       calendario,
+      earlyBirdScadenza: earlyBirdPercentuale !== null ? earlyBirdScadenza : undefined,
       moduli: moduliState.map(({ id, scadenza_iscrizione, data_inizio }) => ({
         id,
         scadenza_iscrizione,
@@ -65,6 +71,25 @@ export function DateNuovaEdizioneForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {earlyBirdPercentuale !== null && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Early bird (-{earlyBirdPercentuale}%)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-1 max-w-[200px]">
+              <Label className="text-xs text-muted-foreground">Scadenza</Label>
+              <Input
+                type="date"
+                required
+                value={earlyBirdScadenza}
+                onChange={(e) => setEarlyBirdScadenza(e.target.value)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {moduliState.length > 0 && (
         <Card>
           <CardHeader>

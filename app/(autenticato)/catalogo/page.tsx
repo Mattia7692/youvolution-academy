@@ -9,14 +9,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { scadenzaEarlyBird } from "@/lib/prezzo";
 
 export default async function CatalogoPage() {
   const supabase = await createClient();
   const [{ data: corsi }, { data: moduli }, { data: pacchetti }] = await Promise.all([
     supabase
       .from("corsi")
-      .select("id, titolo, descrizione, calendario, sold_out_manuale, iscrizioni_chiuse_manuale")
+      .select(
+        "id, titolo, descrizione, calendario, sold_out_manuale, iscrizioni_chiuse_manuale, early_bird_scadenza, early_bird_percentuale",
+      )
       .eq("attivo", true)
       .order("created_at", { ascending: true }),
     supabase
@@ -29,19 +30,7 @@ export default async function CatalogoPage() {
       .eq("attivo", true),
   ]);
 
-  const dateInizioPerCorso = new Map<string, string[]>();
-  for (const m of moduli ?? []) {
-    const lista = dateInizioPerCorso.get(m.corso_id) ?? [];
-    lista.push(m.data_inizio);
-    dateInizioPerCorso.set(m.corso_id, lista);
-  }
-
   const oggi = new Date().toISOString().slice(0, 10);
-  const earlyBirdAttivoPerCorso = new Map<string, boolean>();
-  for (const [corsoId, date] of dateInizioPerCorso) {
-    const cutoff = scadenzaEarlyBird(date);
-    earlyBirdAttivoPerCorso.set(corsoId, !!cutoff && oggi <= cutoff);
-  }
 
   // Sold out automatico: un corso e' pieno quando TUTTE le sue opzioni
   // acquistabili (moduli acquistabili singolarmente + pacchetti) hanno un
@@ -200,9 +189,9 @@ export default async function CatalogoPage() {
                       <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{corso.calendario}</p>
                     </div>
                   )}
-                  {earlyBirdAttivoPerCorso.get(corso.id) && (
+                  {corso.early_bird_scadenza !== null && oggi <= corso.early_bird_scadenza && (
                     <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                      Sconto early bird attivo
+                      Sconto early bird attivo (-{corso.early_bird_percentuale}%)
                     </span>
                   )}
                   {inSospeso && (

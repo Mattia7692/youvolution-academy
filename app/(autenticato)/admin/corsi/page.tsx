@@ -16,7 +16,7 @@ export default async function GestioneCorsiPage() {
       supabase
         .from("corsi")
         .select(
-          "id, titolo, descrizione, calendario, metodo_pagamento, sold_out_manuale, iscrizioni_chiuse_manuale, attivo",
+          "id, titolo, descrizione, calendario, metodo_pagamento, sold_out_manuale, iscrizioni_chiuse_manuale, early_bird_scadenza, early_bird_percentuale, attivo",
         )
         .order("created_at", { ascending: false }),
       supabase

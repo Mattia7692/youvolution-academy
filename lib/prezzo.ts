@@ -3,34 +3,6 @@
 // pattern di CONSENSO_VERSIONE_CORRENTE in lib/consenso.ts.
 export const ALIQUOTA_IVA = 22;
 
-// Sconto early bird: percentuale fissa, applicata automaticamente (mai a
-// scelta del corsista). Non cumulabile con un codice sconto.
-export const EARLY_BIRD_PERCENTUALE = 10;
-
-// Sconto alumni FUTURE: automatico per chi ha gia' un'iscrizione verificata
-// su un corso diverso da quello che sta acquistando ora (moduli diversi
-// dello stesso corso non danno diritto allo sconto). Esclusivo con early
-// bird e codice sconto (mai cumulati): si applica il migliore tra quelli
-// attivi.
-export const ALUMNI_PERCENTUALE = 15;
-
-// La scadenza early bird non e' una data configurata a mano: e' sempre
-// derivata come N giorni prima della data di inizio del PRIMO modulo del
-// corso (quello con data_inizio piu' vicina) — vale per l'intero corso,
-// indipendentemente da quali moduli il corsista scelga di acquistare.
-export const EARLY_BIRD_GIORNI_PRIMA = 16;
-
-// Calcola la scadenza early bird di un corso a partire dalle date di inizio
-// (yyyy-mm-dd) di tutti i suoi moduli attivi. Ritorna null se non ci sono
-// moduli (corso non ancora configurato).
-export function scadenzaEarlyBird(dateInizioModuli: string[]): string | null {
-  if (dateInizioModuli.length === 0) return null;
-  const primaData = dateInizioModuli.reduce((min, d) => (d < min ? d : min));
-  const scadenza = new Date(`${primaData}T00:00:00`);
-  scadenza.setDate(scadenza.getDate() - EARLY_BIRD_GIORNI_PRIMA);
-  return scadenza.toISOString().slice(0, 10);
-}
-
 export type ScomposizionePrezzo = {
   imponibile: number;
   scontoPercentuale: number;
