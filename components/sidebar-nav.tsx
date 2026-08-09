@@ -12,7 +12,13 @@ const ETICHETTA_GRUPPO = "hsl(190 12% 55%)";
 // dove il brand arancione ha un accento contrastante sulla voce selezionata).
 const ACCENTO_ATTIVO = "hsl(28 90% 55%)";
 
-export type VoceNav = { href: string; etichetta: string; badge?: number; gruppo?: string };
+export type VoceNav = {
+  href: string;
+  etichetta: string;
+  badge?: number;
+  gruppo?: string;
+  separatore?: boolean;
+};
 
 export function SidebarNav({ voci }: { voci: VoceNav[] }) {
   const pathname = usePathname();
@@ -24,6 +30,9 @@ export function SidebarNav({ voci }: { voci: VoceNav[] }) {
         const nuovoGruppo = voce.gruppo && voce.gruppo !== voci[indice - 1]?.gruppo;
         return (
           <div key={voce.href} className="flex flex-col gap-1">
+            {voce.separatore && (
+              <hr className="my-2 border-t" style={{ borderColor: "rgba(255,255,255,0.1)" }} />
+            )}
             {nuovoGruppo && (
               <p
                 className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wider uppercase"
