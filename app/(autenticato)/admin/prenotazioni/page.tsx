@@ -18,7 +18,7 @@ export default async function PrenotazioniPage() {
   // l'hint esplicito PostgREST non sa quale usare e l'embed fallisce con un
   // errore, che va sempre controllato esplicitamente (altrimenti la query
   // fallisce silenziosamente e la pagina sembra solo "vuota").
-  const { data: iscrizioni, error } = await supabase
+  const { data: candidate, error } = await supabase
     .from("iscrizioni")
     .select(
       "id, totale_snapshot, created_at, corsi(titolo), profiles!corsista_id(nome, cognome, email)",
@@ -29,6 +29,21 @@ export default async function PrenotazioniPage() {
   if (error) {
     console.error("[prenotazioni] errore nel caricamento", error);
   }
+
+  // Un'iscrizione con piano rate personalizzato resta 'in_attesa_pagamento'
+  // per tutta la durata del piano (vedi verificaRata in admin/actions.ts), ma
+  // non e' una "prenotazione in attesa del primo bonifico" nel senso di
+  // questa pagina — il suo avanzamento si segue da Coda di verifica/Iscritti.
+  const idsCandidate = (candidate ?? []).map((i) => i.id);
+  let idsConPianoRate = new Set<string>();
+  if (idsCandidate.length > 0) {
+    const { data: rateEsistenti } = await supabase
+      .from("iscrizioni_rate")
+      .select("iscrizione_id")
+      .in("iscrizione_id", idsCandidate);
+    idsConPianoRate = new Set((rateEsistenti ?? []).map((r) => r.iscrizione_id));
+  }
+  const iscrizioni = (candidate ?? []).filter((i) => !idsConPianoRate.has(i.id));
 
   return (
     <div className="space-y-6">

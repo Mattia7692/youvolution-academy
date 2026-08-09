@@ -34,6 +34,8 @@ export type IscrittoConCorso = {
   codiceFirstMoverCorso: string | null;
   corsoId: string;
   corsoTitolo: string;
+  confermaInviataAt?: string | null;
+  rateProgress?: { verificate: number; totale: number } | null;
 };
 
 export function IscrittiLista({ iscritti }: { iscritti: IscrittoConCorso[] }) {
@@ -105,6 +107,8 @@ export function IscrittiLista({ iscritti }: { iscritti: IscrittoConCorso[] }) {
               codiceScontoInserito={iscrizione.codiceScontoInserito}
               codiceFirstMoverCorso={iscrizione.codiceFirstMoverCorso}
               corsoTitolo={iscrizione.corsoTitolo}
+              confermaInviataAt={iscrizione.confermaInviataAt}
+              rateProgress={iscrizione.rateProgress}
             />
           ))}
         </div>

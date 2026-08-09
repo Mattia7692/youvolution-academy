@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { richiediAdmin } from "@/lib/roles";
 import { CodaVerificaRiga } from "@/components/coda-verifica-riga";
+import { RataVerificaRiga } from "@/components/rata-verifica-riga";
 import type { StatoIscrizione } from "@/components/stato-badge";
 import { formattaPrezzo } from "@/lib/prezzo";
 
@@ -14,16 +15,28 @@ export default async function CodaVerificaPage() {
   // l'hint esplicito PostgREST non sa quale usare e l'embed fallisce con un
   // errore, che qui va sempre controllato esplicitamente (altrimenti la query
   // fallisce silenziosamente e la pagina sembra solo "vuota").
-  const { data: iscrizioni, error } = await supabase
-    .from("iscrizioni")
-    .select(
-      "id, stato, totale_snapshot, cro, cro_inserito_at, nota_admin, sconto_tipo, sconto_percentuale, codice_sconto_inserito, corsi(titolo), profiles!corsista_id(nome, cognome, email)",
-    )
-    .in("stato", ["cro_inserito", "cro_da_chiarire"])
-    .order("cro_inserito_at", { ascending: true });
+  const [{ data: iscrizioni, error }, { data: rate, error: errorRate }] = await Promise.all([
+    supabase
+      .from("iscrizioni")
+      .select(
+        "id, stato, totale_snapshot, cro, cro_inserito_at, nota_admin, sconto_tipo, sconto_percentuale, codice_sconto_inserito, corsi(titolo), profiles!corsista_id(nome, cognome, email)",
+      )
+      .in("stato", ["cro_inserito", "cro_da_chiarire"])
+      .order("cro_inserito_at", { ascending: true }),
+    supabase
+      .from("iscrizioni_rate")
+      .select(
+        "id, numero, importo, stato, cro, cro_inserito_at, nota_admin, iscrizioni!inner(corsi(titolo), profiles!corsista_id(nome, cognome, email))",
+      )
+      .in("stato", ["cro_inserito", "cro_da_chiarire"])
+      .order("cro_inserito_at", { ascending: true }),
+  ]);
 
   if (error) {
     console.error("[coda-verifica] errore nel caricamento", error);
+  }
+  if (errorRate) {
+    console.error("[coda-verifica] errore nel caricamento rate", errorRate);
   }
 
   return (
@@ -34,6 +47,8 @@ export default async function CodaVerificaPage() {
           Iscrizioni in attesa di conferma del bonifico.
         </p>
       </div>
+
+      <h2 className="text-xl font-semibold text-foreground">Iscrizioni</h2>
 
       {!iscrizioni || iscrizioni.length === 0 ? (
         <p className="text-muted-foreground">Nessuna iscrizione da verificare al momento.</p>
@@ -57,6 +72,48 @@ export default async function CodaVerificaPage() {
                 prezzo={formattaPrezzo(iscrizione.totale_snapshot)}
                 cro={iscrizione.cro}
                 notaAdmin={iscrizione.nota_admin}
+                corsistaNome={`${corsista?.nome ?? ""} ${corsista?.cognome ?? ""}`.trim()}
+                corsistaEmail={corsista?.email ?? ""}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      <div>
+        <h2 className="text-xl font-semibold text-foreground">Iscrizioni su misura</h2>
+        <p className="text-muted-foreground mt-1">
+          Rate di piani di pagamento personalizzati in attesa di conferma del bonifico.
+        </p>
+      </div>
+
+      {!rate || rate.length === 0 ? (
+        <p className="text-muted-foreground">Nessuna rata da verificare al momento.</p>
+      ) : (
+        <div className="space-y-3">
+          {rate.map((rata) => {
+            const iscrizione = Array.isArray(rata.iscrizioni) ? rata.iscrizioni[0] : rata.iscrizioni;
+            const corso = iscrizione
+              ? Array.isArray(iscrizione.corsi)
+                ? iscrizione.corsi[0]
+                : iscrizione.corsi
+              : null;
+            const corsista = iscrizione
+              ? Array.isArray(iscrizione.profiles)
+                ? iscrizione.profiles[0]
+                : iscrizione.profiles
+              : null;
+
+            return (
+              <RataVerificaRiga
+                key={rata.id}
+                rataId={rata.id}
+                stato={rata.stato as StatoIscrizione}
+                numero={rata.numero}
+                prezzo={formattaPrezzo(rata.importo)}
+                cro={rata.cro}
+                notaAdmin={rata.nota_admin}
+                corsoTitolo={corso?.titolo ?? "Corso"}
                 corsistaNome={`${corsista?.nome ?? ""} ${corsista?.cognome ?? ""}`.trim()}
                 corsistaEmail={corsista?.email ?? ""}
               />

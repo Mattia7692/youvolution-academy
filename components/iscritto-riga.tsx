@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { CheckIcon } from "lucide-react";
 import { eliminaIscrizione } from "@/app/(autenticato)/admin/actions";
 import { StatoBadge, type StatoIscrizione } from "@/components/stato-badge";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,9 @@ export function IscrittoRiga({
   codiceScontoInserito,
   codiceFirstMoverCorso,
   corsoTitolo,
+  promemoriaInviatoAt,
+  confermaInviataAt,
+  rateProgress,
 }: {
   iscrizioneId: string;
   stato: StatoIscrizione;
@@ -50,6 +54,9 @@ export function IscrittoRiga({
   codiceScontoInserito: string | null;
   codiceFirstMoverCorso: string | null;
   corsoTitolo?: string;
+  promemoriaInviatoAt?: string | null;
+  confermaInviataAt?: string | null;
+  rateProgress?: { verificate: number; totale: number } | null;
 }) {
   const [confermaEliminazione, setConfermaEliminazione] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +99,28 @@ export function IscrittoRiga({
           )}
         </div>
         <div className="flex items-center gap-3">
-          <StatoBadge stato={stato} />
+          {rateProgress && (
+            <span className="inline-flex w-fit items-center rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-700">
+              {rateProgress.verificate}/{rateProgress.totale} rate pagate
+            </span>
+          )}
+          {stato === "in_attesa_pagamento" && promemoriaInviatoAt && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
+              <CheckIcon className="size-3" /> Promemoria inviato
+            </span>
+          )}
+          {stato === "verificata" && confermaInviataAt && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
+              <CheckIcon className="size-3" /> Conferma inviata
+            </span>
+          )}
+          {rateProgress ? (
+            <span className="inline-flex w-fit items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
+              Iscrizione su misura
+            </span>
+          ) : (
+            <StatoBadge stato={stato} />
+          )}
           {confermaEliminazione ? (
             <>
               <Button size="sm" variant="destructive" onClick={handleElimina} disabled={isLoading}>

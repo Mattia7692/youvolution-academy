@@ -84,6 +84,8 @@ export function Passo1Form({
   corsoId,
   moduli,
   pacchetti,
+  moduliCopertiIds = [],
+  datiFiscaliIniziali = null,
   earlyBirdScadenza,
   earlyBirdPercentuale,
   firstMoverScadenza,
@@ -92,6 +94,8 @@ export function Passo1Form({
   corsoId: string;
   moduli: ModuloDisponibile[];
   pacchetti: PacchettoDisponibile[];
+  moduliCopertiIds?: string[];
+  datiFiscaliIniziali?: DatiFiscali | null;
   earlyBirdScadenza: string | null;
   earlyBirdPercentuale: number | null;
   firstMoverScadenza: string | null;
@@ -110,10 +114,12 @@ export function Passo1Form({
   const cutoffFirstMover = firstMoverScadenza;
   const firstMoverAttivo = !!cutoffFirstMover && oggi <= cutoffFirstMover;
 
+  const moduliCopertiSet = useMemo(() => new Set(moduliCopertiIds), [moduliCopertiIds]);
+
   const [moduloIdsSelezionati, setModuloIdsSelezionati] = useState<string[]>([]);
   const [pacchettoSelezionato, setPacchettoSelezionato] = useState<string | null>(null);
 
-  const [fiscali, setFiscali] = useState<DatiFiscali>(FISCALI_VUOTI);
+  const [fiscali, setFiscali] = useState<DatiFiscali>(datiFiscaliIniziali ?? FISCALI_VUOTI);
   const [fatturazione, setFatturazione] = useState<DatiFatturazione>(FATTURAZIONE_VUOTA);
 
   const [codiceSconto, setCodiceSconto] = useState("");
@@ -321,6 +327,30 @@ export function Passo1Form({
                     );
                   }
 
+                  if (moduliCopertiSet.has(modulo.id)) {
+                    return (
+                      <div
+                        key={modulo.id}
+                        className="flex items-start gap-3 rounded-lg border border-dashed border-border p-3 opacity-80"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="text-sm font-medium text-foreground">{modulo.titolo}</span>
+                            <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                              Già incluso nella tua iscrizione
+                            </span>
+                          </div>
+                          {modulo.descrizione && (
+                            <p className="text-sm text-muted-foreground mt-1">{modulo.descrizione}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Inizia il {formattaData(modulo.data_inizio)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+
                   const copertoDaPacchetto = !!pacchettoAttivo?.moduloIds.includes(modulo.id);
                   const selezionato = copertoDaPacchetto || moduloIdsSelezionati.includes(modulo.id);
                   return (
@@ -497,11 +527,11 @@ export function Passo1Form({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ragione_sociale">{etichettaRagioneSociale}</Label>
+              <Label htmlFor="ragione_sociale" className="min-h-10 items-start">{etichettaRagioneSociale}</Label>
               <Input id="ragione_sociale" required {...campo("ragione_sociale")} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="cellulare">Cellulare</Label>
+              <Label htmlFor="cellulare" className="min-h-10 items-start">Cellulare</Label>
               <Input id="cellulare" required {...campo("cellulare")} />
             </div>
           </div>

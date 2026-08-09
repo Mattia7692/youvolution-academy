@@ -3,7 +3,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { richiediAdmin } from "@/lib/roles";
 import { revalidatePath } from "next/cache";
-import { resend, MITTENTE_ACADEMY } from "@/lib/resend";
+import { getResend, MITTENTE_ACADEMY } from "@/lib/resend";
+import { ALIQUOTA_IVA } from "@/lib/prezzo";
+import {
+  CONSENSO_CONDIZIONI_ISCRIZIONE_VERSIONE_CORRENTE,
+  CONSENSO_PRIVACY_ISCRIZIONE_VERSIONE_CORRENTE,
+} from "@/lib/consenso";
 
 export async function verificaIscrizione(iscrizioneId: string) {
   const supabase = await createClient();
@@ -834,7 +839,7 @@ export async function inviaCodiceFirstMover(iscrizioneId: string) {
     revalidatePath("/admin/codici-sconto");
   }
 
-  const { error: erroreEmail } = await resend.emails.send({
+  const { error: erroreEmail } = await getResend().emails.send({
     from: MITTENTE_ACADEMY,
     to: corsista.email,
     subject: `Il tuo codice sconto per completare ${corso.titolo}`,
@@ -922,5 +927,209 @@ export async function cambiaRuoloUtente(profiloId: string, ruolo: "corsista" | "
   if (error) return { ok: false as const, error: error.message };
 
   revalidatePath("/admin/utenti");
+  return { ok: true as const };
+}
+
+// ─── Iscrizioni personalizzate ─────────────────────────────────────────
+//
+// Per accordi commerciali negoziati caso per caso (N rate, importi liberi):
+// l'admin crea l'iscrizione da zero per conto del corsista, bypassando
+// passo-1/passo-2. I consensi (condizioni/privacy) sono raccolti fuori
+// piattaforma (email/contratto) e attestati qui dall'admin — non c'e' un
+// secondo flusso corsista-facing solo per questo caso raro. Il pagamento
+// viene tracciato in iscrizioni_rate (vedi verificaRata/segnalaRata) invece
+// che con il singolo CRO di iscrizioni.
+
+export type RataPersonalizzata = { importo: number; scadenza: string | null };
+
+export async function creaIscrizionePersonalizzata(dati: {
+  corsistaId: string;
+  corsoId: string;
+  moduloIds: string[];
+  rate: RataPersonalizzata[];
+}) {
+  const supabase = await createClient();
+  const admin = await richiediAdmin(supabase);
+  if (!admin) return { ok: false as const, error: "Non autorizzato." };
+
+  if (dati.moduloIds.length === 0) {
+    return { ok: false as const, error: "Seleziona almeno un modulo." };
+  }
+  if (dati.rate.length === 0) {
+    return { ok: false as const, error: "Aggiungi almeno una rata." };
+  }
+  if (dati.rate.some((r) => !(r.importo > 0))) {
+    return { ok: false as const, error: "Ogni rata deve avere un importo positivo." };
+  }
+
+  const { data: corso } = await supabase.from("corsi").select("id").eq("id", dati.corsoId).maybeSingle();
+  if (!corso) return { ok: false as const, error: "Corso non disponibile." };
+
+  // I dati anagrafici/fiscali e la fatturazione a soggetto diverso non li
+  // inserisce l'admin: si recuperano dall'account del corsista ("Il mio
+  // account"). Se il corsista non li ha ancora compilati restano vuoti e
+  // sara' lui a completarli da "Le mie iscrizioni" (vedi
+  // completaDatiIscrizione in iscrizione/actions.ts).
+  const { data: corsista } = await supabase
+    .from("profiles")
+    .select(
+      "id, tipo_soggetto, ragione_sociale, codice_fiscale, partita_iva, indirizzo, cap, citta, provincia, nazione, codice_sdi, pec, cellulare, data_nascita, fatturazione_diversa, fatturazione_intestazione, fatturazione_indirizzo, fatturazione_cap, fatturazione_codice_fiscale_piva, fatturazione_codice_sdi",
+    )
+    .eq("id", dati.corsistaId)
+    .maybeSingle();
+  if (!corsista) return { ok: false as const, error: "Corsista non valido." };
+
+  const totale = dati.rate.reduce((somma, r) => somma + r.importo, 0);
+  const imponibile = totale / (1 + ALIQUOTA_IVA / 100);
+  const ora = new Date().toISOString();
+
+  const { data: iscrizione, error } = await supabase
+    .from("iscrizioni")
+    .insert({
+      corsista_id: dati.corsistaId,
+      corso_id: dati.corsoId,
+
+      tipo_soggetto: corsista.tipo_soggetto,
+      ragione_sociale: corsista.ragione_sociale,
+      codice_fiscale: corsista.codice_fiscale,
+      partita_iva: corsista.partita_iva,
+      indirizzo: corsista.indirizzo,
+      cap: corsista.cap,
+      citta: corsista.citta,
+      provincia: corsista.provincia,
+      nazione: corsista.nazione,
+      codice_sdi: corsista.codice_sdi,
+      pec: corsista.pec,
+      cellulare: corsista.cellulare,
+      data_nascita: corsista.data_nascita,
+
+      fatturazione_diversa: corsista.fatturazione_diversa,
+      fatturazione_intestazione: corsista.fatturazione_diversa ? corsista.fatturazione_intestazione : null,
+      fatturazione_indirizzo: corsista.fatturazione_diversa ? corsista.fatturazione_indirizzo : null,
+      fatturazione_cap: corsista.fatturazione_diversa ? corsista.fatturazione_cap : null,
+      fatturazione_codice_fiscale_piva: corsista.fatturazione_diversa
+        ? corsista.fatturazione_codice_fiscale_piva
+        : null,
+      fatturazione_codice_sdi: corsista.fatturazione_diversa ? corsista.fatturazione_codice_sdi : null,
+
+      sconto_tipo: "nessuno",
+      sconto_percentuale: 0,
+
+      imponibile_snapshot: imponibile,
+      totale_snapshot: totale,
+
+      consenso_condizioni_accettato: true,
+      consenso_condizioni_data: ora,
+      consenso_condizioni_versione: CONSENSO_CONDIZIONI_ISCRIZIONE_VERSIONE_CORRENTE,
+      consenso_privacy_accettato: true,
+      consenso_privacy_data: ora,
+      consenso_privacy_versione: CONSENSO_PRIVACY_ISCRIZIONE_VERSIONE_CORRENTE,
+
+      nota_admin: "Iscrizione personalizzata: consensi raccolti fuori piattaforma dall'admin.",
+      stato: "in_attesa_pagamento",
+    })
+    .select("id")
+    .single();
+
+  if (error || !iscrizione) {
+    return { ok: false as const, error: error?.message ?? "Errore nel salvataggio." };
+  }
+
+  const { error: moduliError } = await supabase
+    .from("iscrizione_moduli")
+    .insert(dati.moduloIds.map((moduloId) => ({ iscrizione_id: iscrizione.id, modulo_id: moduloId })));
+
+  if (moduliError) return { ok: false as const, error: moduliError.message };
+
+  const { error: rateError } = await supabase.from("iscrizioni_rate").insert(
+    dati.rate.map((r, i) => ({
+      iscrizione_id: iscrizione.id,
+      numero: i + 1,
+      importo: r.importo,
+      scadenza: r.scadenza,
+    })),
+  );
+
+  if (rateError) return { ok: false as const, error: rateError.message };
+
+  revalidatePath("/admin/coda-verifica");
+  revalidatePath("/admin/iscritti");
+  revalidatePath("/le-mie-iscrizioni");
+  return { ok: true as const, iscrizioneId: iscrizione.id as string };
+}
+
+export async function verificaRata(rataId: string) {
+  const supabase = await createClient();
+  const admin = await richiediAdmin(supabase);
+  if (!admin) return { ok: false as const, error: "Non autorizzato." };
+
+  const { data: rata, error } = await supabase
+    .from("iscrizioni_rate")
+    .update({
+      stato: "verificata",
+      verificata_da: admin.id,
+      verificata_at: new Date().toISOString(),
+      nota_admin: null,
+    })
+    .eq("id", rataId)
+    .select("iscrizione_id")
+    .single();
+
+  if (error || !rata) return { ok: false as const, error: error?.message ?? "Errore nel salvataggio." };
+
+  // Se questa era l'ultima rata ancora da verificare, l'iscrizione madre
+  // passa a 'verificata' — stessa mutazione di verificaIscrizione, eseguita
+  // qui perche' per un piano a rate lo stato complessivo dipende da tutte le
+  // rate, non da un singolo CRO.
+  const { data: rateRimanenti } = await supabase
+    .from("iscrizioni_rate")
+    .select("id")
+    .eq("iscrizione_id", rata.iscrizione_id)
+    .neq("stato", "verificata");
+
+  if (!rateRimanenti || rateRimanenti.length === 0) {
+    await supabase
+      .from("iscrizioni")
+      .update({
+        stato: "verificata",
+        verificata_da: admin.id,
+        verificata_at: new Date().toISOString(),
+        nota_admin: null,
+      })
+      .eq("id", rata.iscrizione_id);
+  }
+
+  revalidatePath("/admin/coda-verifica");
+  revalidatePath("/admin/iscritti");
+  revalidatePath("/le-mie-iscrizioni");
+  revalidatePath("/", "layout");
+  return { ok: true as const };
+}
+
+export async function segnalaRata(rataId: string, nota: string) {
+  const supabase = await createClient();
+  const admin = await richiediAdmin(supabase);
+  if (!admin) return { ok: false as const, error: "Non autorizzato." };
+
+  const notaPulita = nota.trim();
+  if (!notaPulita) {
+    return { ok: false as const, error: "Indica il motivo della segnalazione." };
+  }
+
+  const { error } = await supabase
+    .from("iscrizioni_rate")
+    .update({
+      stato: "cro_da_chiarire",
+      verificata_da: admin.id,
+      verificata_at: new Date().toISOString(),
+      nota_admin: notaPulita,
+    })
+    .eq("id", rataId);
+
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/admin/coda-verifica");
+  revalidatePath("/le-mie-iscrizioni");
+  revalidatePath("/", "layout");
   return { ok: true as const };
 }

@@ -29,7 +29,7 @@ export default async function IscrittiCorsoPage({
     supabase
       .from("iscrizioni")
       .select(
-        "id, stato, created_at, sconto_tipo, sconto_percentuale, codice_sconto_inserito, profiles!corsista_id(nome, cognome, email)",
+        "id, stato, created_at, sconto_tipo, sconto_percentuale, codice_sconto_inserito, promemoria_inviato_at, conferma_inviata_at, profiles!corsista_id(nome, cognome, email)",
       )
       .eq("corso_id", corsoId)
       .order("created_at", { ascending: false }),
@@ -43,6 +43,22 @@ export default async function IscrittiCorsoPage({
 
   if (error) {
     console.error("[admin/corsi/:id/iscritti] errore nel caricamento iscritti", error);
+  }
+
+  // Un'iscrizione con piano rate personalizzato va segnalata come tale (non
+  // con lo stato generico, che per un piano rate resta 'in_attesa_pagamento'
+  // finche' non sono tutte verificate): stessa logica di admin/iscritti.
+  const iscrizioneIds = (iscritti ?? []).map((i) => i.id);
+  const { data: rate } = await (iscrizioneIds.length > 0
+    ? supabase.from("iscrizioni_rate").select("iscrizione_id, stato").in("iscrizione_id", iscrizioneIds)
+    : Promise.resolve({ data: [] as { iscrizione_id: string; stato: string }[] }));
+
+  const rateProgressPerIscrizione = new Map<string, { verificate: number; totale: number }>();
+  for (const r of rate ?? []) {
+    const progresso = rateProgressPerIscrizione.get(r.iscrizione_id) ?? { verificate: 0, totale: 0 };
+    progresso.totale += 1;
+    if (r.stato === "verificata") progresso.verificate += 1;
+    rateProgressPerIscrizione.set(r.iscrizione_id, progresso);
   }
 
   const verificati = iscritti?.filter((i) => i.stato === "verificata").length ?? 0;
@@ -86,6 +102,9 @@ export default async function IscrittiCorsoPage({
                   scontoPercentuale={iscrizione.sconto_percentuale}
                   codiceScontoInserito={iscrizione.codice_sconto_inserito}
                   codiceFirstMoverCorso={codiceFirstMover?.codice ?? null}
+                  promemoriaInviatoAt={iscrizione.promemoria_inviato_at}
+                  confermaInviataAt={iscrizione.conferma_inviata_at}
+                  rateProgress={rateProgressPerIscrizione.get(iscrizione.id) ?? null}
                 />
               );
             })}

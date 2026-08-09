@@ -108,14 +108,36 @@ export default async function CatalogoPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  let corsiInSospeso = new Set<string>();
+  // Due categorie distinte, entrambe segnalate in ambra nel catalogo: un
+  // carrello aperto normale (un solo CRO, "Continua" -> passo-2) e
+  // un'iscrizione con piano rate personalizzato (che resta
+  // 'in_attesa_pagamento' per tutta la durata del piano, ma non ha un
+  // passo-2 a CRO singolo — il pagamento si gestisce da "Le mie iscrizioni").
+  let corsiInSospesoCarrello = new Set<string>();
+  let corsiInSospesoPianoRate = new Set<string>();
   if (user) {
     const { data: sospese } = await supabase
       .from("iscrizioni")
-      .select("corso_id")
+      .select("id, corso_id")
       .eq("corsista_id", user.id)
       .eq("stato", "in_attesa_pagamento");
-    corsiInSospeso = new Set((sospese ?? []).map((s) => s.corso_id));
+
+    const idsSospese = (sospese ?? []).map((s) => s.id);
+    let idsConPianoRate = new Set<string>();
+    if (idsSospese.length > 0) {
+      const { data: rateEsistenti } = await supabase
+        .from("iscrizioni_rate")
+        .select("iscrizione_id")
+        .in("iscrizione_id", idsSospese);
+      idsConPianoRate = new Set((rateEsistenti ?? []).map((r) => r.iscrizione_id));
+    }
+
+    corsiInSospesoCarrello = new Set(
+      (sospese ?? []).filter((s) => !idsConPianoRate.has(s.id)).map((s) => s.corso_id),
+    );
+    corsiInSospesoPianoRate = new Set(
+      (sospese ?? []).filter((s) => idsConPianoRate.has(s.id)).map((s) => s.corso_id),
+    );
   }
 
   return (
@@ -132,7 +154,9 @@ export default async function CatalogoPage() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {corsi.map((corso) => {
-            const inSospeso = corsiInSospeso.has(corso.id);
+            const inSospesoCarrello = corsiInSospesoCarrello.has(corso.id);
+            const inSospesoPianoRate = corsiInSospesoPianoRate.has(corso.id);
+            const inSospeso = inSospesoCarrello || inSospesoPianoRate;
             const soldOut =
               !inSospeso && (corso.sold_out_manuale || !!soldOutAutomaticoPerCorso.get(corso.id));
             const iscrizioniChiuse =
@@ -201,9 +225,14 @@ export default async function CatalogoPage() {
                       </span>
                     )
                   )}
-                  {inSospeso && (
+                  {inSospesoCarrello && (
                     <p className="text-xs font-medium text-orange-700 dark:text-orange-400">
                       Iscrizione in corso — completa il pagamento
+                    </p>
+                  )}
+                  {inSospesoPianoRate && (
+                    <p className="text-xs font-medium text-orange-700 dark:text-orange-400">
+                      Iscrizione su misura in corso — gestisci il pagamento dalle tue iscrizioni
                     </p>
                   )}
                 </CardContent>
@@ -222,8 +251,18 @@ export default async function CatalogoPage() {
                       size="sm"
                       className={inSospeso ? "w-full bg-orange-600 hover:bg-orange-700" : "w-full"}
                     >
-                      <Link href={`/iscrizione/${corso.id}/${inSospeso ? "passo-2" : "passo-1"}`}>
-                        {inSospeso ? "Continua iscrizione" : "Iscriviti"}
+                      <Link
+                        href={
+                          inSospesoPianoRate
+                            ? "/le-mie-iscrizioni"
+                            : `/iscrizione/${corso.id}/${inSospesoCarrello ? "passo-2" : "passo-1"}`
+                        }
+                      >
+                        {inSospesoPianoRate
+                          ? "Vai alle tue iscrizioni"
+                          : inSospesoCarrello
+                            ? "Continua iscrizione"
+                            : "Iscriviti"}
                       </Link>
                     </Button>
                   )}
