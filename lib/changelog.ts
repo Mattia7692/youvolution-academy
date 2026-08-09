@@ -7,6 +7,21 @@ export type VoceChangelog = {
 
 export const CHANGELOG: VoceChangelog[] = [
   {
+    versione: "v1.05",
+    data: "2026-08-09",
+    titolo: "Iscrizioni su misura a rate e pagina Il mio account",
+    modifiche: [
+      "Nuovo strumento admin (\"Iscrizione su misura\") per creare iscrizioni con un piano di pagamento a N rate, importo e scadenza liberi",
+      "Il corsista paga ogni rata separatamente da \"Le mie iscrizioni\"; l'admin le verifica una alla volta dalla Coda di verifica",
+      "L'iscrizione risulta \"Verificata\" solo dopo l'ultima rata; Prenotazioni, Coda di verifica e Iscritti riconoscono correttamente i piani a rate invece di trattarli come iscrizioni normali in sospeso",
+      "Corretto un bug per cui un corsista iscritto a un solo modulo di un corso multi-modulo non poteva più tornare ad aggiungere gli altri moduli",
+      "Nuova pagina \"Il mio account\": dati anagrafici/fiscali e fatturazione a soggetto diverso salvati una volta e riusati automaticamente nelle iscrizioni future",
+      "Automazione Make: nuovi campi per il promemoria di pagamento mancante e la conferma di iscrizione avvenuta",
+      "Corretto un bug per cui la mancanza della chiave Resend bloccava anche azioni admin non collegate all'invio email",
+      "Corretto un bug di scroll nella sidebar su pagine con contenuto lungo",
+    ],
+  },
+  {
     versione: "v1.04",
     data: "2026-07-23",
     titolo: "Iscrizione allineata al modulo cartaceo",
