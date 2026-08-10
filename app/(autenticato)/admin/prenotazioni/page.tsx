@@ -67,16 +67,14 @@ export default async function PrenotazioniPage() {
             return (
               <div
                 key={iscrizione.id}
-                className="rounded-xl border border-border bg-card p-5 flex flex-wrap items-center justify-between gap-3"
+                className="rounded-xl border border-border bg-card p-5 flex flex-wrap items-center justify-between gap-4"
               >
                 <div>
-                  <p className="font-medium text-foreground">{corso?.titolo ?? "Corso"}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {corsista?.nome} {corsista?.cognome} · {corsista?.email}
+                  <p className="text-sm font-semibold text-foreground">
+                    {corsista?.nome} {corsista?.cognome} · {formattaPrezzo(iscrizione.totale_snapshot)}
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    {formattaPrezzo(iscrizione.totale_snapshot)}
-                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">{corsista?.email}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{corso?.titolo ?? "Corso"}</p>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Prenotato il {formattaData(iscrizione.created_at)}

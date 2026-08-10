@@ -55,23 +55,38 @@ export function RataVerificaRiga({
 
   return (
     <div className="rounded-xl border border-border bg-card p-5 space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="font-medium text-foreground">
-            {corsoTitolo} — Rata {numero}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {corsistaNome} · {corsistaEmail}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {prezzo}
+          <p className="text-sm font-semibold text-foreground">
+            {corsistaNome} · {prezzo}
             {cro && ` · CRO ${cro}`}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">{corsistaEmail}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {corsoTitolo} — Rata {numero}
           </p>
           {notaAdmin && stato === "cro_da_chiarire" && (
             <p className="text-sm text-red-700 mt-1">{notaAdmin}</p>
           )}
         </div>
-        <StatoBadge stato={stato} />
+        <div className="flex items-center gap-2">
+          <StatoBadge stato={stato} />
+          {!mostraSegnalazione && (
+            <>
+              <Button size="sm" onClick={handleVerifica} disabled={isLoading}>
+                Verifica
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setMostraSegnalazione(true)}
+                disabled={isLoading}
+              >
+                Segnala
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -80,7 +95,7 @@ export function RataVerificaRiga({
         </p>
       )}
 
-      {mostraSegnalazione ? (
+      {mostraSegnalazione && (
         <div className="space-y-2">
           <Textarea
             value={nota}
@@ -95,20 +110,6 @@ export function RataVerificaRiga({
               Annulla
             </Button>
           </div>
-        </div>
-      ) : (
-        <div className="flex gap-2">
-          <Button size="sm" onClick={handleVerifica} disabled={isLoading}>
-            Verifica
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setMostraSegnalazione(true)}
-            disabled={isLoading}
-          >
-            Segnala
-          </Button>
         </div>
       )}
     </div>

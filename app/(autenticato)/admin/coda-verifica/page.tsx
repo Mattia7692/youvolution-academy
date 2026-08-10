@@ -80,7 +80,7 @@ export default async function CodaVerificaPage() {
         </div>
       )}
 
-      <div>
+      <div className="pt-6 mt-2 border-t border-border">
         <h2 className="text-xl font-semibold text-foreground">Iscrizioni su misura</h2>
         <p className="text-muted-foreground mt-1">
           Rate di piani di pagamento personalizzati in attesa di conferma del bonifico.

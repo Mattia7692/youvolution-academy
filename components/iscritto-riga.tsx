@@ -79,11 +79,11 @@ export function IscrittoRiga({
     <div className="rounded-xl border border-border bg-card p-5 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          {corsoTitolo && <p className="text-xs font-semibold text-muted-foreground">{corsoTitolo}</p>}
           <p className="font-medium text-foreground">
             {nome} {cognome}
           </p>
           <p className="text-sm text-muted-foreground">{email}</p>
+          {corsoTitolo && <p className="text-sm text-muted-foreground mt-1">{corsoTitolo}</p>}
           <p className="text-xs text-muted-foreground mt-1">Iscritto il {formattaData(createdAt)}</p>
           {scontoTipo && scontoTipo !== "nessuno" && (
             <span

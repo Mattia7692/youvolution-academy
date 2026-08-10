@@ -110,16 +110,14 @@ export function CodaVerificaRiga({
 
   return (
     <div className={`rounded-xl border p-5 space-y-3 ${SFONDO_PER_SCONTO[scontoTipo]}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="font-medium text-foreground">{corsoTitolo}</p>
-          <p className="text-sm text-muted-foreground">
-            {corsistaNome} · {corsistaEmail}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {prezzo}
+          <p className="text-sm font-semibold text-foreground">
+            {corsistaNome} · {prezzo}
             {cro && ` · CRO ${cro}`}
           </p>
+          <p className="text-sm text-muted-foreground mt-1">{corsistaEmail}</p>
+          <p className="text-sm text-muted-foreground mt-1">{corsoTitolo}</p>
           {notaAdmin && stato === "cro_da_chiarire" && (
             <p className="text-sm text-red-700 mt-1">{notaAdmin}</p>
           )}
@@ -133,6 +131,32 @@ export function CodaVerificaRiga({
             {scontoTipo === "codice" && codiceScontoInserito && ` · ${codiceScontoInserito}`}
           </span>
           <StatoBadge stato={stato} />
+          {!mostraSegnalazione && (
+            <>
+              <Button size="sm" onClick={handleVerifica} disabled={isLoading}>
+                Verifica
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setMostraSegnalazione(true)}
+                disabled={isLoading}
+              >
+                Segnala
+              </Button>
+              {scontoTipo === "first_mover" && !emailInviata && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-violet-300 text-violet-800 hover:bg-violet-100"
+                  onClick={handleInviaCodice}
+                  disabled={isLoading}
+                >
+                  Invia codice sconto first mover
+                </Button>
+              )}
+            </>
+          )}
         </div>
       </div>
 
@@ -154,7 +178,7 @@ export function CodaVerificaRiga({
         </p>
       )}
 
-      {mostraSegnalazione ? (
+      {mostraSegnalazione && (
         <div className="space-y-2">
           <Textarea
             value={nota}
@@ -169,31 +193,6 @@ export function CodaVerificaRiga({
               Annulla
             </Button>
           </div>
-        </div>
-      ) : (
-        <div className="flex gap-2">
-          <Button size="sm" onClick={handleVerifica} disabled={isLoading}>
-            Verifica
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setMostraSegnalazione(true)}
-            disabled={isLoading}
-          >
-            Segnala
-          </Button>
-          {scontoTipo === "first_mover" && !emailInviata && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-violet-300 text-violet-800 hover:bg-violet-100"
-              onClick={handleInviaCodice}
-              disabled={isLoading}
-            >
-              Invia codice sconto first mover
-            </Button>
-          )}
         </div>
       )}
     </div>

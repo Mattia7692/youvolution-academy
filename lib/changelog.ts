@@ -7,6 +7,16 @@ export type VoceChangelog = {
 
 export const CHANGELOG: VoceChangelog[] = [
   {
+    versione: "v1.06",
+    data: "2026-08-10",
+    titolo: "Card admin più leggibili e fix del troncamento testo nei menu a tendina",
+    modifiche: [
+      "Coda di verifica, Prenotazioni e Iscritti: nome del corsista ed email in evidenza, importo/CRO in grassetto, tag di stato e pulsanti Verifica/Segnala raggruppati a destra",
+      "Maggiore separazione visiva tra \"Iscrizioni\" e \"Iscrizioni su misura\" nella Coda di verifica",
+      "Corretto un bug per cui il titolo di un corso lungo nel filtro di Iscritti strabordava sulla freccina del menu invece di troncarsi con i puntini di sospensione (il componente Select condiviso non applicava mai lo stile al valore selezionato)",
+    ],
+  },
+  {
     versione: "v1.05",
     data: "2026-08-09",
     titolo: "Iscrizioni su misura a rate e pagina Il mio account",
