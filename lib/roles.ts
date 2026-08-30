@@ -4,10 +4,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // actions e route handler — a differenza dell'enterprise, dove lo stesso
 // normalizeRole()/controllo admin e' duplicato in oltre 5 file.
 
-export type Ruolo = "corsista" | "admin";
+export type Ruolo = "corsista" | "admin" | "owner";
 
 export function normalizzaRuolo(valore: unknown): Ruolo {
-  return valore === "admin" ? "admin" : "corsista";
+  if (valore === "owner") return "owner";
+  if (valore === "admin") return "admin";
+  return "corsista";
 }
 
 export type Profilo = {
@@ -48,6 +50,14 @@ export async function richiediAdmin(
   supabase: SupabaseClient,
 ): Promise<Profilo | null> {
   const profilo = await getProfiloUtente(supabase);
-  if (!profilo || profilo.ruolo !== "admin") return null;
+  if (!profilo || (profilo.ruolo !== "admin" && profilo.ruolo !== "owner")) return null;
+  return profilo;
+}
+
+export async function richiediOwner(
+  supabase: SupabaseClient,
+): Promise<Profilo | null> {
+  const profilo = await getProfiloUtente(supabase);
+  if (!profilo || profilo.ruolo !== "owner") return null;
   return profilo;
 }

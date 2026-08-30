@@ -7,6 +7,7 @@ import { LogoutButton } from "@/components/logout-button";
 import { RoleBadge } from "@/components/role-badge";
 import { SidebarNav, type VoceNav } from "@/components/sidebar-nav";
 import logo from "@/app/assets/youvolution-logo-white.webp";
+import { SFONDO_SIDEBAR, COLORE_BRAND, TESTO_SIDEBAR, TESTO_SIDEBAR_MUTO } from "@/lib/tema";
 
 const NAV_CORSISTA = [
   { href: "/catalogo", etichetta: "Catalogo" },
@@ -18,10 +19,6 @@ const NAV_CORSISTA = [
 // scura vive sopra un tema di base chiaro, e alcune classi generate dalla
 // palette custom (brand/sidebar-*) non venivano applicate in modo affidabile
 // a runtime. Lo stile inline elimina quel problema alla radice.
-const SFONDO_SIDEBAR = "linear-gradient(170deg, hsl(222 45% 10%) 0%, hsl(208 55% 45%) 100%)";
-const COLORE_BRAND = "hsl(173 60% 35%)";
-const TESTO_SIDEBAR = "hsl(175 20% 88%)";
-const TESTO_SIDEBAR_MUTO = "hsl(190 12% 62%)";
 
 export default async function AutenticatoLayout({
   children,
@@ -37,7 +34,7 @@ export default async function AutenticatoLayout({
 
   let nav: VoceNav[] = NAV_CORSISTA;
 
-  if (profilo.ruolo === "admin") {
+  if (profilo.ruolo === "admin" || profilo.ruolo === "owner") {
     // Contatori per avvisare l'admin appena un corsista completa il Passo 1
     // (prenotazione) o inserisce il CRO — notifica in-app, nessun invio email.
     const [{ data: inAttesaCandidate }, { count: coda }, { count: codaRate }] = await Promise.all([

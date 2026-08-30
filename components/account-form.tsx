@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { aggiornaDatiAccount } from "@/app/(autenticato)/account/actions";
+import { aggiornaDatiAccount, type DatiAzienda } from "@/app/(autenticato)/account/actions";
 import type { DatiFatturazione, DatiFiscali } from "@/app/(autenticato)/iscrizione/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,12 +12,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 export function AccountForm({
   datiIniziali,
   fatturazioneIniziale,
+  aziendaIniziale,
 }: {
   datiIniziali: DatiFiscali;
   fatturazioneIniziale: DatiFatturazione;
+  aziendaIniziale: DatiAzienda;
 }) {
   const [fiscali, setFiscali] = useState<DatiFiscali>(datiIniziali);
   const [fatturazione, setFatturazione] = useState<DatiFatturazione>(fatturazioneIniziale);
+  const [azienda, setAzienda] = useState<DatiAzienda>(aziendaIniziale);
   const [error, setError] = useState<string | null>(null);
   const [salvato, setSalvato] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -38,6 +41,14 @@ export function AccountForm({
     },
   });
 
+  const campoAzienda = (chiave: keyof DatiAzienda) => ({
+    value: azienda[chiave],
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSalvato(false);
+      setAzienda((prev) => ({ ...prev, [chiave]: e.target.value }));
+    },
+  });
+
   const isAzienda = fiscali.tipo_soggetto === "azienda";
   const isLiberoProfessionista = fiscali.tipo_soggetto === "libero_professionista";
   const richiedePartitaIva = isAzienda || isLiberoProfessionista;
@@ -52,7 +63,7 @@ export function AccountForm({
     setError(null);
     setSalvato(false);
     setIsLoading(true);
-    const risultato = await aggiornaDatiAccount(fiscali, fatturazione);
+    const risultato = await aggiornaDatiAccount(fiscali, fatturazione, azienda);
     setIsLoading(false);
 
     if (!risultato.ok) {
@@ -156,6 +167,23 @@ export function AccountForm({
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="acc-pec">PEC</Label>
             <Input id="acc-pec" placeholder="Facoltativo se SDI" {...campo("pec")} />
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl bg-card border border-border shadow-xl p-6 flex flex-col gap-4">
+        <div>
+          <h2 className="font-medium text-foreground">Azienda</h2>
+          <p className="text-sm text-muted-foreground">Facoltativo — dove lavori e con quale ruolo.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="acc-azienda">Azienda</Label>
+            <Input id="acc-azienda" {...campoAzienda("azienda")} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="acc-ruolo-aziendale">Ruolo in azienda</Label>
+            <Input id="acc-ruolo-aziendale" {...campoAzienda("ruolo_aziendale")} />
           </div>
         </div>
       </div>

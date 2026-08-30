@@ -1,8 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { richiediAdmin } from "@/lib/roles";
+import { richiediAdmin, richiediOwner } from "@/lib/roles";
 import { revalidatePath } from "next/cache";
+import type { DatiFiscali } from "@/app/(autenticato)/iscrizione/actions";
 import { getResend, MITTENTE_ACADEMY } from "@/lib/resend";
 import { ALIQUOTA_IVA } from "@/lib/prezzo";
 import {
@@ -913,7 +914,7 @@ export async function segnalaIscrizione(iscrizioneId: string, nota: string) {
 // un admin a corsista. Il trigger blocca_cambio_ruolo in DB rifiuta questo
 // update se il chiamante non e' admin, difesa in profondita' oltre a questo
 // controllo applicativo.
-export async function cambiaRuoloUtente(profiloId: string, ruolo: "corsista" | "admin") {
+export async function cambiaRuoloUtente(profiloId: string, ruolo: "corsista" | "admin" | "owner") {
   const supabase = await createClient();
   const admin = await richiediAdmin(supabase);
   if (!admin) return { ok: false as const, error: "Non autorizzato." };
@@ -922,11 +923,27 @@ export async function cambiaRuoloUtente(profiloId: string, ruolo: "corsista" | "
     return { ok: false as const, error: "Non puoi cambiare il tuo stesso ruolo." };
   }
 
+  // Assegnare o revocare owner richiede essere owner: questo controllo
+  // duplica la guardia gia' presente nel database (trigger
+  // blocca_cambio_ruolo), che resta l'unica barriera non aggirabile — qui
+  // serve solo per mostrare un errore leggibile invece del messaggio SQL.
+  const { data: target } = await supabase
+    .from("profiles")
+    .select("ruolo")
+    .eq("id", profiloId)
+    .maybeSingle();
+
+  if (target?.ruolo === "owner" || ruolo === "owner") {
+    const owner = await richiediOwner(supabase);
+    if (!owner) return { ok: false as const, error: "Solo un owner può assegnare o revocare il ruolo owner." };
+  }
+
   const { error } = await supabase.from("profiles").update({ ruolo }).eq("id", profiloId);
 
   if (error) return { ok: false as const, error: error.message };
 
   revalidatePath("/admin/utenti");
+  revalidatePath(`/admin/utenti/${profiloId}`);
   return { ok: true as const };
 }
 
@@ -1131,5 +1148,91 @@ export async function segnalaRata(rataId: string, nota: string) {
   revalidatePath("/admin/coda-verifica");
   revalidatePath("/le-mie-iscrizioni");
   revalidatePath("/", "layout");
+  return { ok: true as const };
+}
+
+// ─── Scheda corsista (CRM) ──────────────────────────────────────────────
+
+export type DatiCorsistaAdmin = DatiFiscali & {
+  azienda: string;
+  ruolo_aziendale: string;
+};
+
+// Correzione dei dati anagrafici/fiscali + azienda da parte dell'admin, dalla
+// scheda corsista — distinta da aggiornaDatiAccount (self-service, in
+// app/(autenticato)/account/actions.ts) perche' qui il chiamante e' l'admin,
+// non il proprietario dei dati.
+export async function aggiornaDatiCorsista(profiloId: string, dati: DatiCorsistaAdmin) {
+  const supabase = await createClient();
+  const admin = await richiediAdmin(supabase);
+  if (!admin) return { ok: false as const, error: "Non autorizzato." };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      tipo_soggetto: dati.tipo_soggetto,
+      ragione_sociale: dati.ragione_sociale || null,
+      codice_fiscale: dati.codice_fiscale || null,
+      partita_iva: dati.partita_iva || null,
+      indirizzo: dati.indirizzo || null,
+      cap: dati.cap || null,
+      citta: dati.citta || null,
+      provincia: dati.provincia || null,
+      nazione: dati.nazione || null,
+      codice_sdi: dati.codice_sdi || null,
+      pec: dati.pec || null,
+      cellulare: dati.cellulare || null,
+      data_nascita: dati.data_nascita || null,
+      azienda: dati.azienda || null,
+      ruolo_aziendale: dati.ruolo_aziendale || null,
+    })
+    .eq("id", profiloId);
+
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath(`/admin/utenti/${profiloId}`);
+  return { ok: true as const };
+}
+
+// Nota interna admin-only sul corsista (tabella profili_note_admin, mai
+// esposta al corsista — vedi migration 20260813100200).
+export async function salvaNotaAdmin(profiloId: string, nota: string) {
+  const supabase = await createClient();
+  const admin = await richiediAdmin(supabase);
+  if (!admin) return { ok: false as const, error: "Non autorizzato." };
+
+  const { error } = await supabase
+    .from("profili_note_admin")
+    .upsert({ profilo_id: profiloId, nota, aggiornata_da: admin.id });
+
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath(`/admin/utenti/${profiloId}`);
+  return { ok: true as const };
+}
+
+// Segna gestita una richiesta di cancellazione GDPR: la cancellazione vera e
+// propria resta un processo manuale fuori piattaforma, qui si traccia solo
+// che e' stata presa in carico e con quale esito.
+export async function gestisciRichiestaCancellazione(richiestaId: string, notaGestione: string) {
+  const supabase = await createClient();
+  const admin = await richiediAdmin(supabase);
+  if (!admin) return { ok: false as const, error: "Non autorizzato." };
+
+  const { data, error } = await supabase
+    .from("richieste_cancellazione")
+    .update({
+      stato: "gestita",
+      gestita_da: admin.id,
+      gestita_at: new Date().toISOString(),
+      nota_gestione: notaGestione.trim() || null,
+    })
+    .eq("id", richiestaId)
+    .select("profilo_id")
+    .single();
+
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath(`/admin/utenti/${data.profilo_id}`);
   return { ok: true as const };
 }

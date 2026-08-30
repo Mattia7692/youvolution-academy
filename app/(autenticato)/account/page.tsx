@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AccountForm } from "@/components/account-form";
+import { EsportaDatiButton } from "@/components/esporta-dati-button";
+import { RichiediCancellazioneForm } from "@/components/richiedi-cancellazione-form";
 import type { DatiFatturazione, DatiFiscali } from "@/app/(autenticato)/iscrizione/actions";
+import type { DatiAzienda } from "@/app/(autenticato)/account/actions";
 
 export default async function AccountPage() {
   const supabase = await createClient();
@@ -14,7 +17,7 @@ export default async function AccountPage() {
   const { data: profilo } = await supabase
     .from("profiles")
     .select(
-      "nome, cognome, email, tipo_soggetto, ragione_sociale, codice_fiscale, partita_iva, indirizzo, cap, citta, provincia, nazione, codice_sdi, pec, cellulare, data_nascita, fatturazione_diversa, fatturazione_intestazione, fatturazione_indirizzo, fatturazione_cap, fatturazione_codice_fiscale_piva, fatturazione_codice_sdi",
+      "nome, cognome, email, tipo_soggetto, ragione_sociale, codice_fiscale, partita_iva, indirizzo, cap, citta, provincia, nazione, codice_sdi, pec, cellulare, data_nascita, fatturazione_diversa, fatturazione_intestazione, fatturazione_indirizzo, fatturazione_cap, fatturazione_codice_fiscale_piva, fatturazione_codice_sdi, azienda, ruolo_aziendale",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -44,6 +47,18 @@ export default async function AccountPage() {
     codice_sdi: profilo?.fatturazione_codice_sdi ?? "",
   };
 
+  const aziendaIniziale: DatiAzienda = {
+    azienda: profilo?.azienda ?? "",
+    ruolo_aziendale: profilo?.ruolo_aziendale ?? "",
+  };
+
+  const { data: richiestaCancellazione } = await supabase
+    .from("richieste_cancellazione")
+    .select("id")
+    .eq("profilo_id", user.id)
+    .eq("stato", "in_attesa")
+    .maybeSingle();
+
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div>
@@ -52,7 +67,31 @@ export default async function AccountPage() {
           {profilo?.nome} {profilo?.cognome} · {profilo?.email}
         </p>
       </div>
-      <AccountForm datiIniziali={datiIniziali} fatturazioneIniziale={fatturazioneIniziale} />
+      <AccountForm
+        datiIniziali={datiIniziali}
+        fatturazioneIniziale={fatturazioneIniziale}
+        aziendaIniziale={aziendaIniziale}
+      />
+
+      <div className="rounded-xl bg-card border border-border shadow-xl p-6 flex flex-col gap-4">
+        <div>
+          <h2 className="font-medium text-foreground">I tuoi dati</h2>
+          <p className="text-sm text-muted-foreground">
+            Ricevi via email una copia di tutti i dati collegati al tuo account.
+          </p>
+        </div>
+        <EsportaDatiButton />
+      </div>
+
+      <div className="rounded-xl bg-card border border-destructive/30 shadow-xl p-6 flex flex-col gap-4">
+        <div>
+          <h2 className="font-medium text-foreground">Cancellazione account</h2>
+          <p className="text-sm text-muted-foreground">
+            Richiedi la cancellazione dei tuoi dati. La richiesta viene gestita dal nostro team.
+          </p>
+        </div>
+        <RichiediCancellazioneForm richiestaGiaInviata={Boolean(richiestaCancellazione)} />
+      </div>
     </div>
   );
 }

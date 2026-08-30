@@ -13,7 +13,8 @@ export default async function HomePage() {
   const profilo = await getProfiloUtente(supabase);
 
   if (profilo) {
-    redirect(profilo.ruolo === "admin" ? "/admin/corsi" : "/le-mie-iscrizioni");
+    const isAdminOrOwner = profilo.ruolo === "admin" || profilo.ruolo === "owner";
+    redirect(isAdminOrOwner ? "/admin/corsi" : "/le-mie-iscrizioni");
   }
 
   return (

@@ -4,16 +4,19 @@ import type { Ruolo } from "@/lib/roles";
 const ETICHETTE: Record<Ruolo, string> = {
   corsista: "Corsista",
   admin: "Admin",
+  owner: "Owner",
 };
 
 const STILI_SM: Record<Ruolo, CSSProperties> = {
   corsista: { backgroundColor: "rgba(255,255,255,0.1)", color: "hsl(175 20% 88%)" },
   admin: { backgroundColor: "hsl(173 60% 35% / 0.25)", color: "hsl(173 70% 75%)" },
+  owner: { backgroundColor: "hsl(280 60% 45% / 0.25)", color: "hsl(280 70% 82%)" },
 };
 
 const STILI_MD: Record<Ruolo, CSSProperties> = {
   corsista: { backgroundColor: "hsl(30 10% 92%)", color: "hsl(20 8% 48%)" },
   admin: { backgroundColor: "hsl(173 60% 35% / 0.15)", color: "hsl(173 60% 28%)" },
+  owner: { backgroundColor: "hsl(280 60% 45% / 0.15)", color: "hsl(280 55% 40%)" },
 };
 
 export function RoleBadge({
