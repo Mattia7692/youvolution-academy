@@ -39,6 +39,39 @@ export default async function CodaVerificaPage() {
     console.error("[coda-verifica] errore nel caricamento rate", errorRate);
   }
 
+  // Per le iscrizioni che usano un codice sconto a usi limitati: quanti
+  // utilizzi verificati ha già quel codice, così l'admin lo vede prima di
+  // cliccare Verifica (il blocco/override vero è in verificaIscrizione).
+  const codiciInUso = Array.from(
+    new Set(
+      (iscrizioni ?? [])
+        .filter((i) => i.sconto_tipo === "codice" && i.codice_sconto_inserito)
+        .map((i) => i.codice_sconto_inserito as string),
+    ),
+  );
+
+  const utilizziPerCodice = new Map<string, { verificati: number; maxUtilizzi: number | null }>();
+  if (codiciInUso.length > 0) {
+    const [{ data: codici }, { data: verificate }] = await Promise.all([
+      supabase.from("codici_sconto").select("codice, max_utilizzi").in("codice", codiciInUso),
+      supabase
+        .from("iscrizioni")
+        .select("codice_sconto_inserito")
+        .eq("stato", "verificata")
+        .in("codice_sconto_inserito", codiciInUso),
+    ]);
+
+    for (const codice of codici ?? []) {
+      utilizziPerCodice.set(codice.codice, { verificati: 0, maxUtilizzi: codice.max_utilizzi });
+    }
+    for (const v of verificate ?? []) {
+      const codice = v.codice_sconto_inserito as string;
+      const conteggio = utilizziPerCodice.get(codice) ?? { verificati: 0, maxUtilizzi: null };
+      conteggio.verificati += 1;
+      utilizziPerCodice.set(codice, conteggio);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -60,6 +93,10 @@ export default async function CodaVerificaPage() {
               ? iscrizione.profiles[0]
               : iscrizione.profiles;
 
+            const utilizziCodice = iscrizione.codice_sconto_inserito
+              ? utilizziPerCodice.get(iscrizione.codice_sconto_inserito)
+              : undefined;
+
             return (
               <CodaVerificaRiga
                 key={iscrizione.id}
@@ -68,6 +105,8 @@ export default async function CodaVerificaPage() {
                 scontoTipo={iscrizione.sconto_tipo as "nessuno" | "early_bird" | "first_mover" | "codice"}
                 scontoPercentuale={iscrizione.sconto_percentuale}
                 codiceScontoInserito={iscrizione.codice_sconto_inserito}
+                codiceUtilizziVerificati={utilizziCodice?.verificati ?? null}
+                codiceMaxUtilizzi={utilizziCodice?.maxUtilizzi ?? null}
                 corsoTitolo={corso?.titolo ?? "Corso"}
                 prezzo={formattaPrezzo(iscrizione.totale_snapshot)}
                 cro={iscrizione.cro}

@@ -9,13 +9,32 @@ export default async function CodiciScontoPage() {
   const admin = await richiediAdmin(supabase);
   if (!admin) redirect("/");
 
-  const [{ data: codiciSconto }, { data: corsi }] = await Promise.all([
+  const [{ data: codiciSconto }, { data: corsi }, { data: iscrizioniConCodice }] = await Promise.all([
     supabase
       .from("codici_sconto")
-      .select("id, codice, percentuale, corso_id, valido_da, valido_a, attivo")
+      .select("id, codice, percentuale, corso_id, valido_da, valido_a, max_utilizzi, attivo")
       .order("created_at", { ascending: false }),
     supabase.from("corsi").select("id, titolo").order("titolo", { ascending: true }),
+    // Utilizzi per codice: verificati (contano davvero) vs in corso di
+    // verifica (preavviso di pressione). L'admin vede tutte le iscrizioni via
+    // RLS, quindi il conteggio si fa qui senza funzione dedicata.
+    supabase
+      .from("iscrizioni")
+      .select("codice_sconto_inserito, stato")
+      .not("codice_sconto_inserito", "is", null),
   ]);
+
+  const utilizziPerCodice = new Map<string, { verificati: number; inAttesa: number }>();
+  for (const iscrizione of iscrizioniConCodice ?? []) {
+    const codice = iscrizione.codice_sconto_inserito as string;
+    const conteggio = utilizziPerCodice.get(codice) ?? { verificati: 0, inAttesa: 0 };
+    if (iscrizione.stato === "verificata") {
+      conteggio.verificati += 1;
+    } else if (["in_attesa_pagamento", "cro_inserito", "cro_da_chiarire"].includes(iscrizione.stato)) {
+      conteggio.inAttesa += 1;
+    }
+    utilizziPerCodice.set(codice, conteggio);
+  }
 
   return (
     <div className="space-y-6">
@@ -35,7 +54,12 @@ export default async function CodiciScontoPage() {
           <p className="text-muted-foreground">Nessun codice sconto creato ancora.</p>
         ) : (
           codiciSconto.map((codiceSconto) => (
-            <CodiceScontoRiga key={codiceSconto.id} codiceSconto={codiceSconto} corsi={corsi ?? []} />
+            <CodiceScontoRiga
+              key={codiceSconto.id}
+              codiceSconto={codiceSconto}
+              corsi={corsi ?? []}
+              utilizzi={utilizziPerCodice.get(codiceSconto.codice) ?? { verificati: 0, inAttesa: 0 }}
+            />
           ))
         )}
       </div>

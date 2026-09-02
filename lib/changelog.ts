@@ -7,6 +7,18 @@ export type VoceChangelog = {
 
 export const CHANGELOG: VoceChangelog[] = [
   {
+    versione: "v1.07",
+    data: "2026-09-02",
+    titolo: "Limite di utilizzi sui codici sconto",
+    modifiche: [
+      "In creazione/modifica di un codice sconto si può ora scegliere quante volte può essere usato (1, 2, 3, 4, 5, 10, 20 o illimitato); i codici esistenti restano illimitati",
+      "Conta come utilizzo un'iscrizione con pagamento verificato: un'iscrizione mai pagata non consuma il codice, una verificata poi eliminata lo libera",
+      "Al Passo 1 dell'iscrizione un codice che ha raggiunto il limite viene rifiutato con un messaggio dedicato; se si esaurisce mentre il corsista compila, l'iscrizione prosegue senza sconto",
+      "La Coda di verifica mostra \"3/5 usati\" sulle iscrizioni con codice a usi limitati; se il limite è già stato raggiunto la verifica chiede conferma (\"Verifica comunque\") invece di bloccare, così chi ha già pagato in buona fede non resta fuori",
+      "La gestione Codici sconto mostra gli utilizzi residui e un tag \"Esaurito\"",
+    ],
+  },
+  {
     versione: "v1.06",
     data: "2026-08-10",
     titolo: "Card admin più leggibili e fix del troncamento testo nei menu a tendina",

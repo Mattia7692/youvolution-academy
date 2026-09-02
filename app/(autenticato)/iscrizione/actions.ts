@@ -229,15 +229,24 @@ export async function salvaPasso1(corsoId: string, dati: DatiPasso1) {
   const codiceInserito = dati.codiceSconto.trim();
 
   if (codiceInserito) {
-    const { data: percentuale } = await supabase.rpc("valida_codice_sconto", {
+    const { data: righe } = await supabase.rpc("verifica_codice_sconto", {
       p_codice: codiceInserito,
       p_corso_id: corsoId,
     });
-    if (!percentuale) {
+    const info = Array.isArray(righe) ? righe[0] : righe;
+    if (!info || info.percentuale == null) {
       return { ok: false as const, error: "Codice sconto non valido o scaduto." };
     }
+    if (info.esaurito) {
+      return {
+        ok: false as const,
+        error:
+          "Questo codice sconto ha raggiunto il numero massimo di utilizzi. Puoi proseguire senza sconto.",
+        codiceEsaurito: true as const,
+      };
+    }
     scontoTipo = "codice";
-    scontoPercentuale = percentuale;
+    scontoPercentuale = info.percentuale;
   } else if (corso.first_mover_scadenza && oggi <= corso.first_mover_scadenza) {
     scontoTipo = "first_mover";
     scontoPercentuale = corso.first_mover_percentuale!;

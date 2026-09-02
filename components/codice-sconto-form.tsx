@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { creaCodiceSconto } from "@/app/(autenticato)/admin/actions";
+import {
+  CHIAVE_ILLIMITATO,
+  OPZIONI_MAX_UTILIZZI,
+  parseValoreMaxUtilizzi,
+} from "@/lib/codici-sconto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +19,7 @@ export function CodiceScontoForm({ corsi }: { corsi: { id: string; titolo: strin
   const [corsoId, setCorsoId] = useState("");
   const [validoDa, setValidoDa] = useState("");
   const [validoA, setValidoA] = useState("");
+  const [maxUtilizziChiave, setMaxUtilizziChiave] = useState(CHIAVE_ILLIMITATO);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -29,6 +35,7 @@ export function CodiceScontoForm({ corsi }: { corsi: { id: string; titolo: strin
       corsoId: corsoId === "" ? null : corsoId,
       validoDa: validoDa === "" ? null : validoDa,
       validoA: validoA === "" ? null : validoA,
+      maxUtilizzi: parseValoreMaxUtilizzi(maxUtilizziChiave),
       attivo: true,
     });
 
@@ -44,6 +51,7 @@ export function CodiceScontoForm({ corsi }: { corsi: { id: string; titolo: strin
     setCorsoId("");
     setValidoDa("");
     setValidoA("");
+    setMaxUtilizziChiave(CHIAVE_ILLIMITATO);
     router.refresh();
   };
 
@@ -104,6 +112,24 @@ export function CodiceScontoForm({ corsi }: { corsi: { id: string; titolo: strin
               <Label htmlFor="valido_a">Valido fino a (facoltativo)</Label>
               <Input id="valido_a" type="date" value={validoA} onChange={(e) => setValidoA(e.target.value)} />
             </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="max_utilizzi">Numero di utilizzi</Label>
+            <select
+              id="max_utilizzi"
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+              value={maxUtilizziChiave}
+              onChange={(e) => setMaxUtilizziChiave(e.target.value)}
+            >
+              {OPZIONI_MAX_UTILIZZI.map((o) => (
+                <option key={o.chiave} value={o.chiave}>
+                  {o.etichetta}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Quante iscrizioni con pagamento verificato possono usare questo codice.
+            </p>
           </div>
 
           {error && (

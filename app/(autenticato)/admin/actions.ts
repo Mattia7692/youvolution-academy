@@ -11,10 +11,60 @@ import {
   CONSENSO_PRIVACY_ISCRIZIONE_VERSIONE_CORRENTE,
 } from "@/lib/consenso";
 
-export async function verificaIscrizione(iscrizioneId: string) {
+export async function verificaIscrizione(
+  iscrizioneId: string,
+  opzioni?: { oltreLimite?: boolean },
+) {
   const supabase = await createClient();
   const admin = await richiediAdmin(supabase);
   if (!admin) return { ok: false as const, error: "Non autorizzato." };
+
+  // Limite di utilizzi del codice sconto: la verifica del pagamento e' il
+  // momento in cui un utilizzo diventa reale (migration
+  // 20260902120000_limite_utilizzi_codici_sconto). Se il codice ha gia'
+  // raggiunto il tetto blocchiamo con un avviso — ma l'admin puo' forzare
+  // (oltreLimite) per non penalizzare chi ha gia' pagato in buona fede in una
+  // race tra piu' iscrizioni con lo stesso codice a usi limitati.
+  if (!opzioni?.oltreLimite) {
+    const { data: iscrizione } = await supabase
+      .from("iscrizioni")
+      .select("stato, sconto_tipo, codice_sconto_inserito")
+      .eq("id", iscrizioneId)
+      .maybeSingle();
+
+    if (
+      iscrizione &&
+      iscrizione.stato !== "verificata" &&
+      iscrizione.sconto_tipo === "codice" &&
+      iscrizione.codice_sconto_inserito
+    ) {
+      const { data: codice } = await supabase
+        .from("codici_sconto")
+        .select("max_utilizzi")
+        .eq("codice", iscrizione.codice_sconto_inserito)
+        .maybeSingle();
+
+      if (codice?.max_utilizzi != null) {
+        const { count } = await supabase
+          .from("iscrizioni")
+          .select("id", { count: "exact", head: true })
+          .eq("codice_sconto_inserito", iscrizione.codice_sconto_inserito)
+          .eq("stato", "verificata")
+          .neq("id", iscrizioneId);
+
+        const utilizzi = count ?? 0;
+        if (utilizzi >= codice.max_utilizzi) {
+          return {
+            ok: false as const,
+            error: `Il codice ${iscrizione.codice_sconto_inserito} ha già raggiunto il limite di ${codice.max_utilizzi} utilizzi (${utilizzi}/${codice.max_utilizzi}). Puoi verificare comunque se questa persona ha già pagato.`,
+            limiteRaggiunto: true as const,
+            utilizzi,
+            maxUtilizzi: codice.max_utilizzi,
+          };
+        }
+      }
+    }
+  }
 
   const { error } = await supabase
     .from("iscrizioni")
@@ -718,6 +768,7 @@ export type DatiCodiceSconto = {
   corsoId: string | null;
   validoDa: string | null;
   validoA: string | null;
+  maxUtilizzi: number | null; // null = illimitato
   attivo: boolean;
 };
 
@@ -731,6 +782,9 @@ export async function creaCodiceSconto(dati: DatiCodiceSconto) {
   if (!(dati.percentuale > 0 && dati.percentuale <= 100)) {
     return { ok: false as const, error: "Percentuale non valida." };
   }
+  if (dati.maxUtilizzi !== null && !(Number.isInteger(dati.maxUtilizzi) && dati.maxUtilizzi >= 1)) {
+    return { ok: false as const, error: "Numero di utilizzi non valido." };
+  }
 
   const { error } = await supabase.from("codici_sconto").insert({
     codice,
@@ -738,6 +792,7 @@ export async function creaCodiceSconto(dati: DatiCodiceSconto) {
     corso_id: dati.corsoId,
     valido_da: dati.validoDa,
     valido_a: dati.validoA,
+    max_utilizzi: dati.maxUtilizzi,
     attivo: dati.attivo,
   });
 
@@ -757,12 +812,21 @@ export async function aggiornaCodiceSconto(id: string, patch: Partial<DatiCodice
   const admin = await richiediAdmin(supabase);
   if (!admin) return { ok: false as const, error: "Non autorizzato." };
 
+  if (
+    patch.maxUtilizzi !== undefined &&
+    patch.maxUtilizzi !== null &&
+    !(Number.isInteger(patch.maxUtilizzi) && patch.maxUtilizzi >= 1)
+  ) {
+    return { ok: false as const, error: "Numero di utilizzi non valido." };
+  }
+
   const aggiornamento: Record<string, unknown> = {};
   if (patch.codice !== undefined) aggiornamento.codice = patch.codice.trim().toUpperCase();
   if (patch.percentuale !== undefined) aggiornamento.percentuale = patch.percentuale;
   if (patch.corsoId !== undefined) aggiornamento.corso_id = patch.corsoId;
   if (patch.validoDa !== undefined) aggiornamento.valido_da = patch.validoDa;
   if (patch.validoA !== undefined) aggiornamento.valido_a = patch.validoA;
+  if (patch.maxUtilizzi !== undefined) aggiornamento.max_utilizzi = patch.maxUtilizzi;
   if (patch.attivo !== undefined) aggiornamento.attivo = patch.attivo;
 
   const { error } = await supabase.from("codici_sconto").update(aggiornamento).eq("id", id);

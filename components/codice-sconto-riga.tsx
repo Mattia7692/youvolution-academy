@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { aggiornaCodiceSconto, eliminaCodiceSconto } from "@/app/(autenticato)/admin/actions";
+import {
+  OPZIONI_MAX_UTILIZZI,
+  chiavePerMaxUtilizzi,
+  parseValoreMaxUtilizzi,
+} from "@/lib/codici-sconto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,26 +21,50 @@ export type CodiceSconto = {
   corso_id: string | null;
   valido_da: string | null;
   valido_a: string | null;
+  max_utilizzi: number | null;
   attivo: boolean;
 };
 
 export function CodiceScontoRiga({
   codiceSconto,
   corsi,
+  utilizzi = { verificati: 0, inAttesa: 0 },
 }: {
   codiceSconto: CodiceSconto;
   corsi: { id: string; titolo: string }[];
+  utilizzi?: { verificati: number; inAttesa: number };
 }) {
   const [inModifica, setInModifica] = useState(false);
   const [percentuale, setPercentuale] = useState(String(codiceSconto.percentuale));
   const [corsoId, setCorsoId] = useState(codiceSconto.corso_id ?? "");
   const [validoDa, setValidoDa] = useState(codiceSconto.valido_da ?? "");
   const [validoA, setValidoA] = useState(codiceSconto.valido_a ?? "");
+  const [maxUtilizziChiave, setMaxUtilizziChiave] = useState(
+    chiavePerMaxUtilizzi(codiceSconto.max_utilizzi),
+  );
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const corso = corsi.find((c) => c.id === codiceSconto.corso_id);
+
+  // Un codice puo' avere un tetto fuori dai valori suggeriti (impostato via
+  // SQL): in modifica aggiungiamo un'opzione sintetica per non perderlo.
+  const opzioniMaxUtilizzi = OPZIONI_MAX_UTILIZZI.some(
+    (o) => o.chiave === chiavePerMaxUtilizzi(codiceSconto.max_utilizzi),
+  )
+    ? OPZIONI_MAX_UTILIZZI
+    : [
+        {
+          chiave: String(codiceSconto.max_utilizzi),
+          etichetta: `${codiceSconto.max_utilizzi} utilizzi`,
+          maxUtilizzi: codiceSconto.max_utilizzi,
+        },
+        ...OPZIONI_MAX_UTILIZZI,
+      ];
+
+  const esaurito =
+    codiceSconto.max_utilizzi !== null && utilizzi.verificati >= codiceSconto.max_utilizzi;
 
   const handleSalva = async () => {
     setError(null);
@@ -45,6 +74,7 @@ export function CodiceScontoRiga({
       corsoId: corsoId === "" ? null : corsoId,
       validoDa: validoDa === "" ? null : validoDa,
       validoA: validoA === "" ? null : validoA,
+      maxUtilizzi: parseValoreMaxUtilizzi(maxUtilizziChiave),
     });
     setIsLoading(false);
     if (!risultato.ok) {
@@ -119,6 +149,27 @@ export function CodiceScontoRiga({
             <Input type="date" value={validoA} onChange={(e) => setValidoA(e.target.value)} />
           </div>
         </div>
+        <div className="flex flex-col gap-1">
+          <Label className="text-xs text-muted-foreground">Numero di utilizzi</Label>
+          <select
+            className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+            value={maxUtilizziChiave}
+            onChange={(e) => setMaxUtilizziChiave(e.target.value)}
+          >
+            {opzioniMaxUtilizzi.map((o) => (
+              <option key={o.chiave} value={o.chiave}>
+                {o.etichetta}
+              </option>
+            ))}
+          </select>
+          {utilizzi.verificati > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Già usato {utilizzi.verificati}{" "}
+              {utilizzi.verificati === 1 ? "volta" : "volte"} (iscrizioni verificate): un tetto più
+              basso non le annulla, impedisce solo nuovi utilizzi.
+            </p>
+          )}
+        </div>
         {error && (
           <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
             {error}
@@ -144,6 +195,7 @@ export function CodiceScontoRiga({
           <Badge variant={codiceSconto.attivo ? "default" : "secondary"}>
             {codiceSconto.attivo ? "Attivo" : "Disattivato"}
           </Badge>
+          {esaurito && <Badge variant="destructive">Esaurito</Badge>}
         </div>
         <p className="text-sm text-muted-foreground mt-1">
           -{codiceSconto.percentuale}% · {corso ? corso.titolo : "Tutti i corsi"}
@@ -154,6 +206,20 @@ export function CodiceScontoRiga({
               {codiceSconto.valido_da ? `dal ${formattaData(codiceSconto.valido_da)}` : ""}
               {codiceSconto.valido_a ? ` al ${formattaData(codiceSconto.valido_a)}` : ""}
             </>
+          )}
+        </p>
+        <p className="text-sm mt-1">
+          {codiceSconto.max_utilizzi === null ? (
+            <span className="text-muted-foreground">
+              {utilizzi.verificati} {utilizzi.verificati === 1 ? "utilizzo" : "utilizzi"} · illimitato
+            </span>
+          ) : (
+            <span className={esaurito ? "text-destructive font-medium" : "text-muted-foreground"}>
+              {utilizzi.verificati}/{codiceSconto.max_utilizzi} usati
+            </span>
+          )}
+          {utilizzi.inAttesa > 0 && (
+            <span className="text-muted-foreground"> · +{utilizzi.inAttesa} in attesa di verifica</span>
           )}
         </p>
       </div>

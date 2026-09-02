@@ -124,7 +124,10 @@ export function Passo1Form({
 
   const [codiceSconto, setCodiceSconto] = useState("");
   const [codiceStato, setCodiceStato] = useState<
-    { tipo: "ok"; percentuale: number } | { tipo: "errore" } | null
+    | { tipo: "ok"; percentuale: number; residui: number | null }
+    | { tipo: "errore" }
+    | { tipo: "esaurito" }
+    | null
   >(null);
   const [verificandoCodice, setVerificandoCodice] = useState(false);
 
@@ -226,12 +229,23 @@ export function Passo1Form({
     }
     setVerificandoCodice(true);
     const supabase = createClient();
-    const { data: percentuale } = await supabase.rpc("valida_codice_sconto", {
+    const { data: righe } = await supabase.rpc("verifica_codice_sconto", {
       p_codice: codice,
       p_corso_id: corsoId,
     });
+    const info = Array.isArray(righe) ? righe[0] : righe;
     setVerificandoCodice(false);
-    setCodiceStato(percentuale ? { tipo: "ok", percentuale } : { tipo: "errore" });
+    if (!info || info.percentuale == null) {
+      setCodiceStato({ tipo: "errore" });
+    } else if (info.esaurito) {
+      setCodiceStato({ tipo: "esaurito" });
+    } else {
+      setCodiceStato({
+        tipo: "ok",
+        percentuale: info.percentuale,
+        residui: info.max_utilizzi == null ? null : info.max_utilizzi - info.utilizzi,
+      });
+    }
   };
 
   const isAzienda = fiscali.tipo_soggetto === "azienda";
@@ -268,6 +282,12 @@ export function Passo1Form({
     setIsLoading(false);
 
     if (!risultato.ok) {
+      // Il codice si è esaurito mentre il corsista compilava: lo togliamo e
+      // lo lasciamo proseguire (eventualmente con first mover/early bird).
+      if ("codiceEsaurito" in risultato && risultato.codiceEsaurito) {
+        setCodiceSconto("");
+        setCodiceStato(null);
+      }
       setError(risultato.error);
       return;
     }
@@ -464,10 +484,21 @@ export function Passo1Form({
           {codiceStato?.tipo === "ok" && (
             <p className="text-sm text-emerald-700">
               ✓ Codice valido — sconto del {codiceStato.percentuale}% applicato
+              {codiceStato.residui !== null && codiceStato.residui <= 3 && (
+                <span className="text-muted-foreground">
+                  {" "}
+                  · {codiceStato.residui === 1 ? "ultimo utilizzo disponibile" : `${codiceStato.residui} utilizzi ancora disponibili`}
+                </span>
+              )}
             </p>
           )}
           {codiceStato?.tipo === "errore" && (
             <p className="text-sm text-destructive">✕ Codice non valido o scaduto</p>
+          )}
+          {codiceStato?.tipo === "esaurito" && (
+            <p className="text-sm text-destructive">
+              ✕ Questo codice ha raggiunto il numero massimo di utilizzi
+            </p>
           )}
           {!codiceStato && firstMoverAttivo && (
             <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">

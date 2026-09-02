@@ -39,6 +39,8 @@ export function CodaVerificaRiga({
   scontoTipo,
   scontoPercentuale,
   codiceScontoInserito,
+  codiceUtilizziVerificati = null,
+  codiceMaxUtilizzi = null,
   corsoTitolo,
   prezzo,
   cro,
@@ -51,6 +53,8 @@ export function CodaVerificaRiga({
   scontoTipo: ScontoTipo;
   scontoPercentuale: number | null;
   codiceScontoInserito: string | null;
+  codiceUtilizziVerificati?: number | null;
+  codiceMaxUtilizzi?: number | null;
   corsoTitolo: string;
   prezzo: string;
   cro: string | null;
@@ -62,16 +66,25 @@ export function CodaVerificaRiga({
   const [nota, setNota] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [limiteRaggiunto, setLimiteRaggiunto] = useState(false);
+
+  const codiceQuasiEsaurito =
+    codiceMaxUtilizzi !== null &&
+    codiceUtilizziVerificati !== null &&
+    codiceUtilizziVerificati >= codiceMaxUtilizzi;
   const [codiceFirstMover, setCodiceFirstMover] = useState<string | null>(null);
   const [emailInviata, setEmailInviata] = useState(false);
   const [copiato, setCopiato] = useState(false);
 
-  const handleVerifica = async () => {
+  const handleVerifica = async (oltreLimite = false) => {
     setError(null);
     setIsLoading(true);
-    const risultato = await verificaIscrizione(iscrizioneId);
+    const risultato = await verificaIscrizione(iscrizioneId, oltreLimite ? { oltreLimite: true } : undefined);
     setIsLoading(false);
-    if (!risultato.ok) setError(risultato.error);
+    if (!risultato.ok) {
+      setError(risultato.error);
+      if ("limiteRaggiunto" in risultato && risultato.limiteRaggiunto) setLimiteRaggiunto(true);
+    }
   };
 
   const handleInviaCodice = async () => {
@@ -130,12 +143,32 @@ export function CodaVerificaRiga({
             {scontoTipo !== "nessuno" && scontoPercentuale !== null && ` (-${scontoPercentuale}%)`}
             {scontoTipo === "codice" && codiceScontoInserito && ` · ${codiceScontoInserito}`}
           </span>
+          {scontoTipo === "codice" && codiceMaxUtilizzi !== null && codiceUtilizziVerificati !== null && (
+            <span
+              className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                codiceQuasiEsaurito ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"
+              }`}
+            >
+              {codiceUtilizziVerificati}/{codiceMaxUtilizzi} usati
+            </span>
+          )}
           <StatoBadge stato={stato} />
           {!mostraSegnalazione && (
             <>
-              <Button size="sm" onClick={handleVerifica} disabled={isLoading}>
-                Verifica
-              </Button>
+              {limiteRaggiunto ? (
+                <Button
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700"
+                  onClick={() => handleVerifica(true)}
+                  disabled={isLoading}
+                >
+                  Verifica comunque
+                </Button>
+              ) : (
+                <Button size="sm" onClick={() => handleVerifica()} disabled={isLoading}>
+                  Verifica
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="outline"
