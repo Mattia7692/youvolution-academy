@@ -109,6 +109,12 @@ export function LoginForm({
           </Link>
         </div>
       </div>
+
+      <p className="text-center text-xs text-white/40">
+        <Link href="/privacy" className="hover:text-white/70 transition-colors underline underline-offset-2">
+          Informativa sulla privacy
+        </Link>
+      </p>
     </div>
   );
 }

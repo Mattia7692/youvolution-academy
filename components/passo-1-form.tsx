@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   salvaPasso1,
@@ -689,7 +690,15 @@ export function Passo1Form({
           <label className="flex items-start gap-3 cursor-pointer">
             <Checkbox checked={consensoPrivacy} onCheckedChange={(v) => setConsensoPrivacy(v === true)} />
             <span className="text-sm text-muted-foreground">
-              Ho letto l&apos;informativa privacy e acconsento al trattamento dei miei dati personali per le
+              Ho letto l&apos;
+              <Link
+                href="/privacy"
+                target="_blank"
+                className="font-medium text-primary hover:underline underline-offset-4"
+              >
+                informativa privacy
+              </Link>{" "}
+              e acconsento al trattamento dei miei dati personali per le
               finalità del corso.
               <br />
               <span className="text-xs">

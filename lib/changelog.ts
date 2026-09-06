@@ -7,6 +7,17 @@ export type VoceChangelog = {
 
 export const CHANGELOG: VoceChangelog[] = [
   {
+    versione: "v1.08",
+    data: "2026-09-06",
+    titolo: "Informativa sulla privacy",
+    modifiche: [
+      "Nuova pagina pubblica Informativa sulla privacy (/privacy), specifica per l'Academy: dati trattati, pagamenti e ricevute, finalità e basi giuridiche, responsabili (Supabase/Vercel/Resend), conservazione, diritti dell'interessato",
+      "Link all'informativa in home, login, registrazione, Passo 1 dell'iscrizione e in fondo alla barra laterale",
+      "Titolare del trattamento: Youvolution S.r.l. Società Benefit, C.F./P.IVA 10167140960",
+      "BOZZA da validare legalmente: alcuni dati (DPO, region dei fornitori, SCC Resend, tempi di conservazione) sono segnati tra parentesi quadre e vanno completati con il consulente",
+    ],
+  },
+  {
     versione: "v1.07",
     data: "2026-09-02",
     titolo: "Limite di utilizzi sui codici sconto",

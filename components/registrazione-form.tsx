@@ -143,7 +143,15 @@ export function RegistrazioneForm({
             />
             <Label htmlFor="consenso" className="text-sm font-normal leading-snug text-muted-foreground">
               Acconsento al trattamento dei miei dati personali per le finalità
-              di registrazione e gestione del mio account, secondo l&apos;informativa privacy.
+              di registrazione e gestione del mio account, secondo l&apos;
+              <Link
+                href="/privacy"
+                target="_blank"
+                className="font-medium text-primary hover:underline underline-offset-4"
+              >
+                informativa privacy
+              </Link>
+              .
             </Label>
           </div>
 

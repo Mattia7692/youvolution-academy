@@ -44,8 +44,11 @@ export default async function HomePage() {
         </div>
       </main>
 
-      <footer className="py-6 text-center text-xs text-white/30">
-        © {new Date().getFullYear()} Youvolution Academy. Tutti i diritti riservati.
+      <footer className="py-6 text-center text-xs text-white/30 space-x-3">
+        <span>© {new Date().getFullYear()} Youvolution Academy. Tutti i diritti riservati.</span>
+        <Link href="/privacy" className="hover:text-white/60 transition-colors underline underline-offset-2">
+          Privacy
+        </Link>
       </footer>
     </div>
   );

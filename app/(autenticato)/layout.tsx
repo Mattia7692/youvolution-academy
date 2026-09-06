@@ -142,6 +142,14 @@ export default async function AutenticatoLayout({
           className="w-full shrink-0 mt-4 bg-transparent hover:bg-white/5"
           style={{ borderColor: "rgba(255,255,255,0.15)", color: TESTO_SIDEBAR }}
         />
+
+        <Link
+          href="/privacy"
+          className="shrink-0 mt-2 text-center text-[11px] hover:underline"
+          style={{ color: TESTO_SIDEBAR_MUTO }}
+        >
+          Informativa sulla privacy
+        </Link>
       </aside>
 
       <main className="flex-1 min-h-0 overflow-y-auto px-8 py-10">
