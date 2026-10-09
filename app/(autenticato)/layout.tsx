@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { Nothing_You_Could_Do } from "next/font/google";
 import { createClient } from "@/lib/supabase/server";
 import { getProfiloUtente } from "@/lib/roles";
 import { LogoutButton } from "@/components/logout-button";
@@ -8,6 +9,10 @@ import { RoleBadge } from "@/components/role-badge";
 import { SidebarNav, type VoceNav } from "@/components/sidebar-nav";
 import logo from "@/app/assets/youvolution-logo-white.webp";
 import { SFONDO_SIDEBAR, COLORE_BRAND, TESTO_SIDEBAR, TESTO_SIDEBAR_MUTO } from "@/lib/tema";
+
+// «Academy» a mano sotto il logo, come «training room» in Demostene: stesso
+// font, in azzurro invece che in corallo.
+const firma = Nothing_You_Could_Do({ weight: "400", subsets: ["latin"], display: "swap" });
 
 const NAV_CORSISTA = [
   { href: "/catalogo", etichetta: "Catalogo" },
@@ -112,6 +117,19 @@ export default async function AutenticatoLayout({
               style={{ width: "240px", height: "auto" }}
               priority
             />
+            <span
+              className={`${firma.className} block whitespace-nowrap`}
+              style={{
+                fontSize: "34px",
+                lineHeight: 1,
+                color: "#4cc3f5",
+                margin: "4px 0 0 50px",
+                transform: "rotate(-4deg)",
+                transformOrigin: "left center",
+              }}
+            >
+              Academy
+            </span>
           </Link>
 
           <div className="flex items-center gap-3">
