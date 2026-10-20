@@ -11,7 +11,7 @@ const firma = Nothing_You_Could_Do({ weight: "400", subsets: ["latin"], display:
 
 const BG_STYLE = {
   background:
-    "linear-gradient(160deg, hsl(190 30% 10%) 0%, hsl(190 28% 14%) 45%, hsl(173 35% 16%) 100%)",
+    "linear-gradient(180deg, #0f1a3d 0%, #1a2150 38%, #2b1b3d 70%, #3a1a22 100%)",
 } as const;
 
 export default async function HomePage() {
@@ -30,7 +30,7 @@ export default async function HomePage() {
           className="max-w-sm w-full overflow-hidden rounded-[14px] bg-card"
           style={{
             boxShadow:
-              "0 0 0 1px rgba(255,205,110,0.38), 0 0 28px 2px rgba(245,185,66,0.36), 0 0 90px 10px rgba(230,150,40,0.26), 0 30px 70px rgba(0,0,0,0.45)",
+              "0 0 0 1px rgba(130,215,250,0.38), 0 0 28px 2px rgba(76,195,245,0.36), 0 0 90px 10px rgba(40,160,220,0.26), 0 30px 70px rgba(0,0,0,0.45)",
           }}
         >
           <div
